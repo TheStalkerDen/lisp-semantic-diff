@@ -33,7 +33,7 @@
 (defun s-expr-rule (lex)
   (ecase (lexem-type lex)
     ((:integer :symbol)
-     `(:s-expr () ,lex))
+     `(:s-expr () (:atom () ,lex)))
     ((:left-parent)
      `(:s-expr () ,(list-rule lex)))))
 
@@ -46,5 +46,5 @@
                                   ,(lexem-column left-parent-lexem)))
                  (:rparen-coord (,(lexem-line lex)
                                   ,(lexem-column lex))))
-                ,@s-expr-l))
+                ,@(reverse s-expr-l)))
     (push (s-expr-rule lex) s-expr-l)))
