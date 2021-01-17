@@ -2,7 +2,10 @@
     (:nicknames :lexer)
   (:use :cl)
   (:export #:lexer
-           #:lexem))
+           #:lexem
+           #:lexem-type
+           #:lexem-column
+           #:lexem-line))
 
 (in-package :diff-backend/lexer)
 

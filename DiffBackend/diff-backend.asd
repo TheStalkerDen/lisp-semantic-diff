@@ -2,10 +2,12 @@
   :version "0.1.0"
   :author ""
   :license ""
-  :depends-on (:anaphora :alexandria :str :cl-json :iter)
+  :depends-on (:anaphora :alexandria :str :cl-json)
   :components ((:module "src"
                 :components
-                ((:file "main"))))
+                ((:file "lexer")
+                 (:file "parser" :depends-on ("lexer"))
+                 (:file "main"))))
   :description ""
   :in-order-to ((test-op (test-op "diff-backend/tests"))))
 
