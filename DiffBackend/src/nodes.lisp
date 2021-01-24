@@ -1,41 +1,53 @@
 (uiop:define-package :diff-backend/nodes
     (:nicknames :ast-nodes)
-  (:use :cl)
+  (:use :cl :diff-backend/utils)
   (:export))
 
-(defclass diff-status-mixin ()
-  (diff-status :accessor diff-status
-               :initarg :diff-status
-               :initform :same))
+(in-package :diff-backend/nodes)
 
-(defclass parenthesis-mixin ()
-  (parenthesis-info :accessor parenthesis-info
-                    :initarg :parenthesis-info))
+(defmacro define-node (name
+                       (&rest superclasses)
+                       (&rest slot-specs)
+                       &optional class-option)
+  `(progn
+     (defclass* ,name (,@(nconc superclasses '(diff-status-mixin)))
+       ,slot-specs
+       ,(when class-option
+          class-option))))
 
-(defclass keyword-mixin ()
-  (keyword-lexem :accessor keyword-lexem
-                 :initarg :keyword-lexem))
+(defclass* diff-status-mixin ()
+  ((diff-status :accessor diff-status
+                :initarg :diff-status
+                :initform :same)))
 
-(defclass lexem-wrapper-node (diff-status-mixin)
-  (lexem-info :accessor lexem-info
-              :initarg :lexem-info))
+(defclass* parenthesis-mixin ()
+  ((parenthesis-info :accessor parenthesis-info
+                     :initarg :parenthesis-info)))
 
-(defclass defun-node (parenthesis-mixin keyword-mixin diff-status-mixin)
-  (parameters-list :accessor parameters-list
-                   :initarg :parameters-list)
-  (documentation-string :accessor documentation-string
-                        :initarg :documentation-string)
-  (body-forms :accessor body-forms
-              :initarg :body-forms))
+(defclass* keyword-mixin ()
+  ((keyword-lexem :accessor keyword-lexem
+                  :initarg :keyword-lexem)))
 
-(defclass function-call-node (parenthesis-mixin diff-status-mixin)
-  (func-lexem :accessor func-lexem
-              :initarg :func-lexem)
-  (func-arg-forms :accessor func-arg-forms
-                  :initarg :func-arg-forms))
+(define-node lexem-wrapper-node ()
+  ((lexem-info :accessor lexem-info
+               :initarg :lexem-info)))
 
-(defclass list-node (parenthesis-mixin diff-status-mixin)
-  (elements :accessor elements
-            :initarg :elements))
+(define-node defun-node (parenthesis-mixin keyword-mixin)
+  ((parameters-list :accessor parameters-list
+                    :initarg :parameters-list)
+   (documentation-string :accessor documentation-string
+                         :initarg :documentation-string)
+   (body-forms :accessor body-forms
+               :initarg :body-forms)))
+
+(define-node function-call-node (parenthesis-mixin)
+  ((func-lexem :accessor func-lexem
+               :initarg :func-lexem)
+   (func-arg-forms :accessor func-arg-forms
+                   :initarg :func-arg-forms)))
+
+(define-node list-node (parenthesis-mixin)
+  ((elements :accessor elements
+              :initarg :elements)))
 
 
