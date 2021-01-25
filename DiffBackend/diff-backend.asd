@@ -2,11 +2,14 @@
   :version "0.1.0"
   :author ""
   :license ""
-  :depends-on (:anaphora :alexandria :str :cl-json)
+  :depends-on (:anaphora :alexandria :str :cl-json :trivia)
   :components ((:module "src"
                 :components
-                ((:file "lexer")
+                ((:file "utils")
+                 (:file "lexer")
                  (:file "parser" :depends-on ("lexer"))
+                 (:file "nodes"  :depends-on ("utils"))
+                 (:file "abstract-sem-tree-generator" :depends-on ("lexer" "nodes"))
                  (:file "main"))))
   :description ""
   :in-order-to ((test-op (test-op "diff-backend/tests"))))
