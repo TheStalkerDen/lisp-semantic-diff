@@ -6,7 +6,7 @@
   :components ((:module "src"
                 :components
                 ((:file "utils")
-                 (:file "lexer")
+                 (:file "lexer" :depends-on ("utils"))
                  (:file "parser" :depends-on ("lexer"))
                  (:file "nodes"  :depends-on ("utils"))
                  (:file "abstract-sem-tree-generator" :depends-on ("lexer" "nodes"))
