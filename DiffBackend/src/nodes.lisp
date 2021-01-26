@@ -33,7 +33,9 @@
                :initarg :lexem-info)))
 
 (define-node defun-node (parenthesis-mixin keyword-mixin)
-  ((parameters-list :accessor parameters-list
+  ((function-name :accessor function-name
+                  :initarg :func-name)
+   (parameters-list :accessor parameters-list
                     :initarg :parameters-list)
    (documentation-string :accessor documentation-string
                          :initarg :documentation-string)
