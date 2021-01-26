@@ -28,7 +28,7 @@
         (s-expr-l))
     (loop :while *lexems-rest*
        :do (push (s-expr-rule (next-lexem)) s-expr-l))
-    `(:top () ,@s-expr-l)))
+    `(:top () ,@(reverse s-expr-l))))
 
 (defun s-expr-rule (lex)
   (ecase (lexem-type lex)
@@ -38,13 +38,12 @@
      `(:s-expr () ,(list-rule lex)))))
 
 (defun list-rule (left-parent-lexem)
-  
-  (do  ((s-expr-l nil)
-        (lex (next-lexem) (next-lexem)))
-       ((eq (lexem-type lex) :right-parent)
-        `(:list ((:lparen-coord (,(lexem-line left-parent-lexem)
-                                  ,(lexem-column left-parent-lexem)))
-                 (:rparen-coord (,(lexem-line lex)
-                                  ,(lexem-column lex))))
-                ,@(reverse s-expr-l)))
+  (do ((s-expr-l nil)
+       (lex (next-lexem) (next-lexem)))
+      ((eq (lexem-type lex) :right-parent)
+       `(:list ((:lparen-coord (,(lexem-line left-parent-lexem)
+                                 ,(lexem-column left-parent-lexem)))
+                (:rparen-coord (,(lexem-line lex)
+                                 ,(lexem-column lex))))
+               ,@(reverse s-expr-l)))
     (push (s-expr-rule lex) s-expr-l)))
