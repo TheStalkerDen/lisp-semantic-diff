@@ -1,17 +1,14 @@
 (uiop:define-package :diff-backend/lexer
     (:nicknames :lexer)
-  (:use :cl)
+  (:use :cl :diff-backend/utils)
   (:export #:lexer
-           #:lexem
-           #:lexem-type
-           #:lexem-column
-           #:lexem-line))
+           #:is-lexem-symbol?=))
 
 (in-package :diff-backend/lexer)
 
 (declaim (optimize safety))
 
-(defclass lexem ()
+(defclass* lexem ()
   ((line
     :accessor lexem-line
     :initarg :line
@@ -41,6 +38,11 @@
                  :line line
                  :column column
                  :type type))
+
+(defun is-lexem-symbol?= (lexem symbol-string)
+  (when (eq (lexem-type lexem) :symbol)
+    (string-equal (string-upcase (lexem-string lexem))
+                  (string-upcase symbol-string))))
 
 (defvar *whitespaces* '(#\Space #\Newline #\Backspace #\Tab
                         #\Linefeed #\Page #\Return #\Rubout))
