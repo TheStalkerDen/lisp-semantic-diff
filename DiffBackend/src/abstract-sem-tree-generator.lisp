@@ -26,7 +26,7 @@
       ast
     (declare (ignore term-type annotations))
     (ecase (first element)
-      ((:atom) (make-lexem-wrapper element))
+      ((:atom) (make-lexem-wrapper (get-lexem-info-from-s-expr ast)))
       ((:list)
        (or (match-defun element)
            (match-function-call element))))))
