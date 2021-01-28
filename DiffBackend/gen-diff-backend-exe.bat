@@ -1,0 +1,1 @@
+sbcl --eval "(ql:quickload :diff-backend)" --eval "(sb-ext:save-lisp-and-die #P\"diff-backend.exe\" :toplevel #'diff-backend::main :executable t)"
