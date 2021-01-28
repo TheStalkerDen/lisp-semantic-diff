@@ -1,5 +1,6 @@
-(defpackage diff-backend
-  (:use :cl :diff-backend/comparator)
+(uiop:define-package :diff-backend
+  (:use :cl :diff-backend/comparator
+        :diff-backend/results-generator)
   (:import-from :alexandria
                 :read-file-into-string)
   (:import-from :diff-backend/lexer
@@ -10,13 +11,39 @@
                 :abstract-sem-tree-gen))
 (in-package :diff-backend)
 
-;; blah blah blah.
-(defun main ())
 
-(defun compare-two-files (file1 file2)
-  (let ((str1 (read-file-into-string file1))
-        (str2 (read-file-into-string file2)))
-     (compare-two-str str1 str2)))
+(defun main ()
+  (let ((cmd-args (uiop:command-line-arguments)))
+    (print cmd-args)
+    (true-differ-v01 (first cmd-args) (second cmd-args))))
+
+
+(defun true-differ-v01 (file1 file2)
+ (multiple-value-bind (res1 res2)
+     (compare-two-files file1 file2)
+   (uiop:with-output-file (stream1 "res1.json")
+     (uiop:with-output-file (stream2 "res2.json")
+       (get-json-res res1 stream1)
+       (get-json-res res2 stream2)))))
+
+(defun differ-v01 (str1 str2)
+ (multiple-value-bind (res1 res2)
+     (compare-two-str str1 str2)
+   (uiop:with-output-file (stream1 "res1.json")
+     (uiop:with-output-file (stream2 "res2.json")
+       (get-json-res res1 stream1)
+       (get-json-res res2 stream2)))))
+
+(defun simple-differ-str (str1 str2 &optional (out1 t ) (out2 t))
+  (multiple-value-bind (res1 res2)
+      (compare-two-str str1 str2)
+    (get-json-res res1 out1)
+    (get-json-res res2 out2)))
+
+(defun compare-two-files (filepath1 filepath2)
+  (let ((str1 (read-file-into-string filepath1))
+        (str2 (read-file-into-string filepath2)))
+    (compare-two-str str1 str2)))
 
 (defun compare-two-str (str1 str2)
   (let ((ast-tree-1 (get-abstract-sem-tree-from-string str1))
