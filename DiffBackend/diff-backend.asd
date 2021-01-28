@@ -11,6 +11,7 @@
                  (:file "nodes"  :depends-on ("utils"))
                  (:file "abstract-sem-tree-generator" :depends-on ("lexer" "nodes"))
                  (:file "comparator" :depends-on ("nodes"))
+                 (:file "results-generator" :depends-on ("nodes"))
                  (:file "main" :depends-on ("lexer" "parser" "abstract-sem-tree-generator" "comparator")))))
   :description ""
   :in-order-to ((test-op (test-op "diff-backend/tests"))))
