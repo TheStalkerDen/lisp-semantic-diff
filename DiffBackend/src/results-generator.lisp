@@ -25,8 +25,8 @@
   (with-ht
     (add-to-ht "type" "list")
     (add-to-ht "diff-st" (diff-status obj))
-    (add-to-ht "par-info" (encode-json-alist-to-string
-                           (parenthesis-info obj)))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (list*
                         (gener-res-object (keyword-lexem obj))
                         (gener-res-object (function-name obj))
@@ -42,8 +42,8 @@
   (with-ht
     (add-to-ht "type" "list")
     (add-to-ht "diff-st" (diff-status obj))
-    (add-to-ht "par-info" (encode-json-alist-to-string
-                           (parenthesis-info obj)))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (list*
                         (gener-res-object (func-lexem obj))
                         (gener-res-object (func-arg-forms obj))))))
@@ -52,8 +52,8 @@
   (with-ht
     (add-to-ht "type" "list")
     (add-to-ht "diff-st" (diff-status obj))
-    (add-to-ht "par-info" (encode-json-alist-to-string
-                           (parenthesis-info obj)))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (gener-res-object (elements obj)))))
 
 (defmethod gener-res-object ((obj lexem-wrapper-node))
@@ -74,3 +74,4 @@
                                 ,(lexem-column obj)))
     (add-to-ht "lex-type" (lexem-type obj))
     (add-to-ht "string" (lexem-string obj))))
+
