@@ -21,16 +21,20 @@
 (defun true-differ-v01 (file1 file2)
  (multiple-value-bind (res1 res2)
      (compare-two-files file1 file2)
-   (uiop:with-output-file (stream1 "res1.json")
-     (uiop:with-output-file (stream2 "res2.json")
+   (with-open-file (stream1 "res1.json" :direction :output
+                            :if-exists :supersede)
+     (with-open-file (stream2 "res2.json" :direction :output
+                              :if-exists :supersede)
        (get-json-res res1 stream1)
        (get-json-res res2 stream2)))))
 
 (defun differ-v01 (str1 str2)
  (multiple-value-bind (res1 res2)
      (compare-two-str str1 str2)
-   (uiop:with-output-file (stream1 "res1.json")
-     (uiop:with-output-file (stream2 "res2.json")
+   (with-open-file (stream1 "res1.json" :direction :output
+                            :if-exists :supersede)
+     (with-open-file (stream2 "res2.json" :direction :output
+                              :if-exists :supersede)
        (get-json-res res1 stream1)
        (get-json-res res2 stream2)))))
 
