@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QPlainTextEdit" name="plainTextEdit">
+     <widget class="DiffViewer" name="plainTextEdit">
       <property name="documentTitle">
        <string/>
       </property>
@@ -66,6 +66,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DiffViewer</class>
+   <extends>QPlainTextEdit</extends>
+   <header>diffviewer.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
