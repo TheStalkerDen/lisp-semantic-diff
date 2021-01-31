@@ -1,6 +1,7 @@
 (uiop:define-package :diff-backend/nodes
     (:nicknames :ast-nodes)
-  (:use :cl :diff-backend/utils)
+  (:use :cl :diff-backend/utils
+        :diff-backend/lexer)
   (:export))
 
 (in-package :diff-backend/nodes)
@@ -32,6 +33,11 @@
   ((lexem-info :accessor lexem-info
                :initarg :lexem-info)))
 
+(defmethod print-object ((obj lexem-wrapper-node) stream)
+  (with-slots (lexem-info) obj
+      (print-unreadable-object (obj stream)
+        (format stream "~S" (lexem-string lexem-info)))))
+
 (define-node defun-node (parenthesis-mixin keyword-mixin)
   ((function-name :accessor function-name
                   :initarg :func-name)
@@ -47,6 +53,11 @@
                :initarg :func-lexem)
    (func-arg-forms :accessor func-arg-forms
                    :initarg :func-arg-forms)))
+
+(defmethod print-object ((obj function-call-node) stream)
+  (with-slots (func-lexem) obj
+    (print-unreadable-object (obj stream)
+      (format stream "Funcall ~S" func-lexem))))
 
 (define-node list-node (parenthesis-mixin)
   ((elements :accessor elements
