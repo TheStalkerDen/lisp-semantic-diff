@@ -20,11 +20,15 @@ QString DiffViewerTextBuilder::generateText(QJsonDocument doc)
 void DiffViewerTextBuilder::pasteLexem(QJsonObject &lex)
 {
     if(lex["diff-st"].toString() == "deleted"){
-        text.append("<font style=\"background-color:red;\">");
+        text.append("<font style=\"background-color:#FF9CA1;\">");
         text.append(lex["string"].toString());
         text.append("</font>");
     }else if (lex["diff-st"].toString() == "new"){
-        text.append("<font style=\"background-color:green;\">");
+        text.append("<font style=\"background-color:#C9FFBF;\">");
+        text.append(lex["string"].toString());
+        text.append("</font>");
+    }else if (lex["diff-st"].toString() == "moved"){
+        text.append("<font style=\"background-color: #E5F0FF;\">");
         text.append(lex["string"].toString());
         text.append("</font>");
     }else {
@@ -32,20 +36,24 @@ void DiffViewerTextBuilder::pasteLexem(QJsonObject &lex)
     }
 }
 
-void DiffViewerTextBuilder::pasteParent(QChar parent, int line, int column)
+void DiffViewerTextBuilder::pasteParent(QChar parent){
+
+        text.append(parent);
+        cur_column++;
+}
+
+void DiffViewerTextBuilder::pasteSpacesBeforeParent(int line, int column)
 {
     if(cur_line == line){
         pasteSpaces(column - cur_column);
-        text.append(parent);
         cur_line = line;
-        cur_column = column + 1;
+        cur_column = column;
     } else {
         int line_delta = line - cur_line;
         text.append(QString(line_delta, '\n'));
-        pasteSpaces(column - cur_column);
-        text.append(parent);
+        pasteSpaces(column - 1);
         cur_line = line;
-        cur_column = column + 1;
+        cur_column = column;
     }
 }
 
@@ -71,32 +79,31 @@ void DiffViewerTextBuilder::genList(QJsonObject &listObj)
     QJsonObject parent_info = listObj["par-info"].toObject();
     QJsonArray lparenCoord = parent_info["lparenCoord"].toArray();
     QJsonArray rparenCoord = parent_info["rparenCoord"].toArray();
-    if(listObj["diff-st"].toString() == "deleted"){
-        text.append("<font style=\"background-color:red;\">");
-        pasteParent('(',lparenCoord[0].toInt(),lparenCoord[1].toInt());
+
+    auto main_part = [&](){
+        pasteParent('(');
         QJsonArray array = listObj["elems"].toArray();
-        for(int elem_index = 0; elem_index < array.size(); ++elem_index){
-            QJsonObject sexprObject = array[elem_index].toObject();
-            if(sexprObject["type"].toString() == "list"){
-                genList(sexprObject);
-            } else if(sexprObject["type"].toString() == "lexem"){
-                genLexem(sexprObject);
-            }
-        }
-        pasteParent(')',rparenCoord[0].toInt(),rparenCoord[1].toInt());
+        loopArray(array);
+        pasteSpacesBeforeParent(rparenCoord[0].toInt(),rparenCoord[1].toInt());
+        pasteParent(')');
+    };
+
+
+    pasteSpacesBeforeParent(lparenCoord[0].toInt(),lparenCoord[1].toInt());
+    if(listObj["diff-st"].toString() == "deleted"){
+        text.append("<font style=\"background-color:#FF9CA1;\">");
+        main_part();
         text.append("</font>");
     }else if (listObj["diff-st"].toString() == "new"){
-        text.append("<font style=\"background-color:green;\">");
-        pasteParent('(',lparenCoord[0].toInt(),lparenCoord[1].toInt());
-        QJsonArray array = listObj["elems"].toArray();
-        loopArray(array);
-        pasteParent(')',rparenCoord[0].toInt(),rparenCoord[1].toInt());
+        text.append("<font style=\"background-color:#C9FFBF;\">");
+        main_part();
+        text.append("</font>");
+    }else if(listObj["diff-st"].toString() == "moved"){
+        text.append("<font style=\"background-color: #E5F0FF;\">");
+        main_part();
         text.append("</font>");
     }else {
-        pasteParent('(',lparenCoord[0].toInt(),lparenCoord[1].toInt());
-        QJsonArray array = listObj["elems"].toArray();
-        loopArray(array);
-        pasteParent(')',rparenCoord[0].toInt(),rparenCoord[1].toInt());
+        main_part();
     }
 }
 

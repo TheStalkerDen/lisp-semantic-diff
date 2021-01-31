@@ -20,7 +20,8 @@ private:
     int cur_column=1;
 
     void pasteLexem(QJsonObject& lex);
-    void pasteParent(QChar parent, int line, int column);
+    void pasteParent(QChar parent);
+    void pasteSpacesBeforeParent(int line, int column);
     void genLexem(QJsonObject& lex);
     void genList(QJsonObject& list);
     void loopArray(QJsonArray& array);
