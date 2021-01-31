@@ -52,7 +52,7 @@
 (defun compare-two-str (str1 str2)
   (let ((ast-tree-1 (get-abstract-sem-tree-from-string str1))
         (ast-tree-2 (get-abstract-sem-tree-from-string str2)))
-    (compare ast-tree-1 ast-tree-2)
+    (start-compare ast-tree-1 ast-tree-2)
     (values ast-tree-1 ast-tree-2)))
 
 (defun get-abstract-sem-tree-from-string (str)
