@@ -62,16 +62,14 @@ void DiffViewerTextBuilder::genLexem(QJsonObject &lex)
     QJsonArray lexem_pos = lex["lexem-coord"].toArray();
     if(lexem_pos[0].toInt() == cur_line){
         pasteSpaces(lexem_pos[1].toInt() - cur_column);
-        pasteLexem(lex);
-        cur_column = lexem_pos[1].toInt() + lex["string"].toString().size();
     } else {
         int line_delta = lexem_pos[0].toInt() - cur_line;
         text.append(QString('\n', line_delta));
         pasteSpaces(lexem_pos[1].toInt());
-        cur_line = lexem_pos[0].toInt();
-        pasteLexem(lex);
-        cur_column = lexem_pos[1].toInt() + lex["string"].toString().size();
+        cur_line = lexem_pos[0].toInt();    
     }
+    pasteLexem(lex);
+    cur_column = lexem_pos[1].toInt() + lex["string"].toString().size();
 }
 
 void DiffViewerTextBuilder::genList(QJsonObject &listObj)
