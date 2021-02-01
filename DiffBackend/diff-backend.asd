@@ -1,6 +1,6 @@
 (defsystem "diff-backend"
   :version "0.1.0"
-  :author ""
+  :author "Denys Yermolenko"
   :license ""
   :depends-on (:anaphora :alexandria :str :cl-json :trivia)
   :components ((:module "src"
@@ -17,12 +17,16 @@
   :in-order-to ((test-op (test-op "diff-backend/tests"))))
 
 (defsystem "diff-backend/tests"
-  :author ""
+  :author "Denys Yermolenko"
   :license ""
   :depends-on ("diff-backend"
                "rove")
   :components ((:module "tests"
                 :components
-                ((:file "main"))))
+                ((:file "main")
+                 (:file "lexer")
+                 (:file "parser"))))
   :description "Test system for diff-backend"
-  :perform (test-op (op c) (symbol-call :rove :run c)))
+  :perform (test-op :before (o c) (format t "Start testing~%"))
+  :perform (test-op (o c) (symbol-call :rove :run c))
+  :perform (test-op :after (o c) (format t "End testing~%")))
