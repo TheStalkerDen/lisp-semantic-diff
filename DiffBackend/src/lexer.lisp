@@ -2,7 +2,9 @@
     (:nicknames :lexer)
   (:use :cl :diff-backend/utils)
   (:export #:lexer
-           #:is-lexem-symbol?=))
+           #:is-lexem-symbol?=
+           #:make-lexem
+           #:equal-lexem?))
 
 (in-package :diff-backend/lexer)
 
@@ -31,6 +33,22 @@
   (with-slots (line column string) lex
     (print-unreadable-object (lex stream)
       (format stream "Lexem: ~S (~d:~d)" string line column))))
+
+(defun equal-lexem? (lex1 lex2)
+  (with-slots ((line1 line)
+               (column1 column)
+               (type1 type)
+               (string1 string))
+      lex1
+    (with-slots ((line2 line)
+                 (column2 column)
+                 (type2 type)
+                 (string2 string))
+        lex2
+      (and (= line1 line2)
+           (= column1 column2)
+           (eq type1 type2)
+           (string= string1 string2)))))
 
 (defun make-lexem (string line column type)
   (make-instance 'lexem
