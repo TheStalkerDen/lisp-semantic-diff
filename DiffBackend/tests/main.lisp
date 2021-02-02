@@ -1,11 +1,8 @@
-(defpackage DiffBackend/tests/main
+(uiop:define-package :diff-backend/tests/main
   (:use :cl
-        :DiffBackend
+        :diff-backend
         :rove))
-(in-package :DiffBackend/tests/main)
 
-;; NOTE: To run this test file, execute `(asdf:test-system :DiffBackend)' in your Lisp.
+(in-package :diff-backend/tests/main)
 
-(deftest test-target-1
-  (testing "should (= 1 1) to be true"
-    (ok (= 1 1))))
+;; NOTE: To run this test file, execute `(asdf:test-system :diff-backend)' in your Lisp.
