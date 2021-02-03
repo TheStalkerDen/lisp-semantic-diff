@@ -51,6 +51,17 @@
    (make-lexem "defun" 1 1 :symbol)
    (make-lexem "fun" 1 7 :symbol)))
 
+(def-lexer-test symbol.3
+    "1+ 1a"
+  (list
+   (make-lexem "1+" 1 1 :symbol)
+   (make-lexem "1a" 1 4 :symbol)))
+
+(def-lexer-test symbol.4
+    "!@$%^&*-=_<>?."
+  (list
+   (make-lexem "!@$%^&*-=_<>?." 1 1 :symbol)))
+
 (def-lexer-test integer
     "12345"
   (list
