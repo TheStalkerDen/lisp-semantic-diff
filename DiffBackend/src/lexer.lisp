@@ -65,9 +65,16 @@
 (defvar *whitespaces* '(#\Space #\Newline #\Backspace #\Tab
                         #\Linefeed #\Page #\Return #\Rubout))
 
+(defvar *special-symbols* '(#\+ #\- #\* #\? #\! #\$
+                            #\^ #\& #\@ #\% #\< #\> #\~ #\. #\= #\_))
+
 (defun is-whitespace? (char)
   (when char
     (member char *whitespaces*)))
+
+(defun is-special-symbol? (char)
+  (when char
+    (member char *special-symbols*)))
 
 (defun digit? (char)
   (when char
@@ -98,7 +105,9 @@
      (setf cur-lexem-column column)
      (cond
        ((digit? cur-char) (go INTEGER))
-       ((alpha? cur-char) (go SYMBOL))
+       ((or (alpha? cur-char)
+            (is-special-symbol? cur-char))
+        (go SYMBOL))
        ((ch= cur-char #\( ) (go OUT_LEFT_PARENT))
        ((ch= cur-char #\) ) (go OUT_RIGHT_PARENT))
        ((is-whitespace? cur-char) (go WHITESPACE))
@@ -111,7 +120,8 @@
      (cond
        ((digit? cur-char)
         (go INTEGER))
-       ((alpha? cur-char)
+       ((or (alpha? cur-char)
+            (is-special-symbol? cur-char))
         (go SYMBOL))
        (t (go OUT_INTEGER)))
      OUT_INTEGER
@@ -126,7 +136,9 @@
      (incf column)
      (push cur-char lexem-l)
      (setf cur-char (read-char stream nil))
-     (cond ((digit-alpha? cur-char) (go SYMBOL))
+     (cond ((or (digit-alpha? cur-char)
+                (is-special-symbol? cur-char))
+            (go SYMBOL))
            (t (go OUT_SYMBOL)))
      OUT_SYMBOL
      (push (make-lexem (coerce (reverse lexem-l) 'string)
