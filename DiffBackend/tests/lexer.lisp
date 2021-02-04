@@ -80,6 +80,14 @@
    (make-lexem "(" 1 2 :left-parent)
    (make-lexem ")" 1 3 :right-parent)))
 
+(def-lexer-test quote.3
+    "'a '1"
+ (list
+   (make-lexem "'" 1 1 :quote)
+   (make-lexem "a" 1 2 :symbol)
+   (make-lexem "'" 1 4 :quote)
+   (make-lexem "1" 1 5 :integer)))
+
 (def-lexer-test mixed.1
     "(defun a () 1)"
   (list
