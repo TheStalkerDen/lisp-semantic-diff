@@ -109,7 +109,8 @@
             (is-special-symbol? cur-char))
         (go SYMBOL))
        ((ch= cur-char #\( ) (go OUT_LEFT_PARENT))
-       ((ch= cur-char #\) ) (go OUT_RIGHT_PARENT))
+       ((ch= cur-char #\)) (go OUT_RIGHT_PARENT))
+       ((ch= cur-char #\') (go QUOTE))
        ((is-whitespace? cur-char) (go WHITESPACE))
        ((null cur-char) (go END))
        (t (error "Incorrect char ~s~%" cur-char)))
@@ -174,5 +175,14 @@
      (setf cur-char (read-char stream nil))
      (cond ((is-whitespace? cur-char) (go WHITESPACE))
            (t (go COMMON)))
+     QUOTE
+     (push (make-lexem "'"
+                       line
+                       cur-lexem-column
+                       :quote)
+           lexems)
+     (incf column)
+     (setf cur-char (read-char stream nil))
+     (go COMMON)
      END
      (return (reverse lexems)))))
