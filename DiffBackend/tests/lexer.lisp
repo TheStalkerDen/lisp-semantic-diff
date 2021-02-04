@@ -67,6 +67,19 @@
   (list
    (make-lexem "12345" 1 1 :integer)))
 
+(def-lexer-test quote.1
+    "'a"
+  (list
+   (make-lexem "'" 1 1 :quote)
+   (make-lexem "a" 1 2 :symbol)))
+
+(def-lexer-test quote.2
+    "'()"
+  (list
+   (make-lexem "'" 1 1 :quote)
+   (make-lexem "(" 1 2 :left-parent)
+   (make-lexem ")" 1 3 :right-parent)))
+
 (def-lexer-test mixed.1
     "(defun a () 1)"
   (list
