@@ -69,3 +69,18 @@
        (:list
         ((:lparen-coord 1 2)
          (:rparen-coord 1 3))))))))
+
+(def-parser-test mixed.1
+    "(a)"
+  `(:top
+    nil
+    (:s-expr
+     nil
+     (:list
+      ((:lparen-coord 1 1)
+       (:rparen-coord 1 3))
+      (:s-expr
+       nil
+       (:atom
+        nil
+        ,(make-lexem "a" 1 2 :symbol)))))))
