@@ -35,7 +35,12 @@
     ((:integer :symbol)
      `(:s-expr () (:atom () ,lex)))
     ((:left-parent)
-     `(:s-expr () ,(list-rule lex)))))
+     `(:s-expr () ,(list-rule lex)))
+    ((:quote)
+     `(:s-expr ()
+               (:quote ((:coord ,(lexem-line lex)
+                                ,(lexem-column lex)))
+                       ,(s-expr-rule (next-lexem)))))))
 
 (defun list-rule (left-parent-lexem)
   (do ((s-expr-l nil)
