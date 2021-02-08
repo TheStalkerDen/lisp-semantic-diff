@@ -24,91 +24,67 @@
     "1"
   `(:top
     nil
-    (:s-expr
+    (:atom
      nil
-     (:atom
-      nil
-      ,(make-lexem "1" 1 1 :integer)))))
+     ,(make-lexem "1" 1 1 :integer))))
 
 (def-parser-test atom.2
     "a 1"
   `(:top
     nil
-    (:s-expr
+    (:atom
      nil
-     (:atom
-      nil
-      ,(make-lexem "a" 1 1 :symbol)))
-    (:s-expr
+     ,(make-lexem "a" 1 1 :symbol))
+    (:atom
      nil
-     (:atom
-      nil
-      ,(make-lexem "1" 1 3 :integer)))))
+     ,(make-lexem "1" 1 3 :integer))))
 
 (def-parser-test list.1
     "()"
   `(:top
     nil
-    (:s-expr
-     nil
-     (:list
-      ((:lparen-coord 1 1)
-       (:rparen-coord 1 2))))))
+    (:list
+     ((:lparen-coord 1 1)
+      (:rparen-coord 1 2)))))
 
 (def-parser-test list.2
     "(())"
   `(:top
     nil
-    (:s-expr
-     nil
+    (:list
+     ((:lparen-coord 1 1)
+      (:rparen-coord 1 4))
      (:list
-      ((:lparen-coord 1 1)
-       (:rparen-coord 1 4))
-      (:s-expr
-       nil
-       (:list
-        ((:lparen-coord 1 2)
-         (:rparen-coord 1 3))))))))
+      ((:lparen-coord 1 2)
+       (:rparen-coord 1 3))))))
 
 (def-parser-test quote.1
     "'a"
   `(:top
     nil
-    (:s-expr
-     nil
-     (:quote
-      ((:coord 1 1))
-      (:s-expr
-       nil
-       (:atom
-        nil
-        ,(make-lexem "a" 1 2 :symbol)))))))
+    (:quote
+     ((:coord 1 1))
+     (:atom
+      nil
+      ,(make-lexem "a" 1 2 :symbol)))))
 
 (def-parser-test quote.2
     "'()"
   `(:top
     nil
-    (:s-expr
-     nil
-     (:quote
-      ((:coord 1 1))
-      (:s-expr
-       nil
-       (:list
-        ((:lparen-coord 1 2)
-         (:rparen-coord 1 3))))))))
+    (:quote
+     ((:coord 1 1))
+     (:list
+      ((:lparen-coord 1 2)
+       (:rparen-coord 1 3))))))
 
 (def-parser-test mixed.1
     "(a)"
   `(:top
     nil
-    (:s-expr
-     nil
-     (:list
-      ((:lparen-coord 1 1)
-       (:rparen-coord 1 3))
-      (:s-expr
-       nil
-       (:atom
-        nil
-        ,(make-lexem "a" 1 2 :symbol)))))))
+    (:list
+     ((:lparen-coord 1 1)
+      (:rparen-coord 1 3))
+     (:atom
+      nil
+      ,(make-lexem "a" 1 2 :symbol)))))
