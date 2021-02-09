@@ -25,8 +25,10 @@
                 :components
                 ((:file "main")
                  (:file "lexer")
-                 (:file "parser"))))
+                 (:file "parser")
+                 (:file "abstract-sem-tree-generator"))))
   :description "Test system for diff-backend"
   :perform (test-op :before (o c) (format t "Start testing~%"))
   :perform (test-op (o c) (symbol-call :rove :run c))
   :perform (test-op :after (o c) (format t "End testing~%")))
+
