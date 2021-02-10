@@ -20,13 +20,15 @@
   :author "Denys Yermolenko"
   :license ""
   :depends-on ("diff-backend"
+               "closer-mop"
                "rove")
   :components ((:module "tests"
-                :components
-                ((:file "main")
-                 (:file "lexer")
-                 (:file "parser")
-                 (:file "abstract-sem-tree-generator"))))
+                        :components
+                        ((:file "test-engines")
+                         (:file "main")
+                         (:file "lexer")
+                         (:file "parser")
+                         (:file "abstract-sem-tree-generator"))))
   :description "Test system for diff-backend"
   :perform (test-op :before (o c) (format t "Start testing~%"))
   :perform (test-op (o c) (symbol-call :rove :run c))

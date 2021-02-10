@@ -1,24 +1,9 @@
-(uiop:define-package :diff-backend/parser
+(uiop:define-package :diff-backend/tests/parser
     (:use :cl
-          :diff-backend/parser
           :diff-backend/lexer
-          :rove))
+          :diff-backend/tests/test-engines))
 
-(in-package :diff-backend/parser)
-
-(defmacro def-parser-test (name str parser-exp)
-  `(deftest ,name
-       (let ((parser-res (parser (lexer ,str))))
-         (unless
-             (tree-equal
-              parser-res
-              ,parser-exp
-              :test (lambda (x y)
-                      (typecase x
-                        (lexem (when (typep y 'lexem)
-                                 (equal-lexem? x y)))
-                        (t (eq x y)))))
-           (fail "Parser-test failed")))))
+(in-package :diff-backend/tests/parser)
 
 (def-parser-test atom.1
     "1"

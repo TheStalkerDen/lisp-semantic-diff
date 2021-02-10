@@ -1,19 +1,9 @@
 (uiop:define-package :diff-backend/tests/lexer
     (:use :cl
           :diff-backend/lexer
-          :rove))
+          :diff-backend/tests/test-engines))
 
 (in-package :diff-backend/tests/lexer)
-
-(defmacro def-lexer-test (name str lexems-list)
-  `(deftest ,name
-     (let ((res (lexer ,str)))
-       (assert (= (length res) (length ,lexems-list)))
-       (loop
-          :for res-lexem :in res
-          :for exp-lemem :in ,lexems-list
-          :do (unless (equal-lexem? res-lexem exp-lemem)
-                (fail "BAD!"))))))
 
 (def-lexer-test parent.1
     "()"
