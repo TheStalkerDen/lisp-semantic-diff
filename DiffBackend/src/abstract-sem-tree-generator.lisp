@@ -21,41 +21,35 @@
               (match-s-expr el))
             elements)))
 
-(defun match-s-expr (ast)
-  (destructuring-bind (term-type annotations element)
-      ast
-    (declare (ignore term-type annotations))
-    (ecase (first element)
-      ((:atom) (make-lexem-wrapper (get-lexem-info-from-s-expr ast)))
-      ((:list)
-       (or (match-defun element)
-           (match-function-call element))))))
+(defun match-s-expr (el)
+  (break)
+  (ecase (first el)
+    ((:atom) (make-lexem-wrapper (third el)))
+    ((:list)
+     (or (match-defun el)
+         (match-function-call el)))))
 
 (defun is-atom-s-expr? (s-expr)
-  (eq (first (third s-expr)) :atom))
-
-(defun get-lexem-info-from-s-expr (s-expr)
-  (third (unpack-s-expr s-expr)))
-
-(defun unpack-s-expr (s-expr)
-  (third s-expr))
+  (break)
+  (eq (first s-expr) :atom))
 
 (defun make-lexem-wrapper (lexem)
   (make-instance 'lexem-wrapper-node :lexem-info lexem))
 
 (defun match-defun (list-element)
+  (break)
   (let ((thrd (third list-element)))
     (when (and (is-atom-s-expr? thrd)
-               (is-lexem-symbol?= (get-lexem-info-from-s-expr thrd) "defun")
+               (is-lexem-symbol?= (third thrd) "defun")
                (>= (length list-element) 6))
       (destructuring-bind (type par-info keyword name parms &rest forms)
           list-element
         (declare (ignore type))
         (make-instance 'defun-node
-                       :keyword-lexem (make-lexem-wrapper (get-lexem-info-from-s-expr keyword))
-                       :func-name (make-lexem-wrapper (get-lexem-info-from-s-expr name))
+                       :keyword-lexem (make-lexem-wrapper (third keyword))
+                       :func-name (make-lexem-wrapper (third name))
                        :parenthesis-info par-info
-                       :parameters-list (gen-list-node (third parms))
+                       :parameters-list (gen-list-node parms)
                        :body-forms (mapcar (lambda (form)
                                              (match-s-expr form))
                                            forms))))))
@@ -74,7 +68,7 @@
       list-element
     (declare (ignore type))
     (make-instance 'function-call-node
-                   :func-lexem (make-lexem-wrapper (get-lexem-info-from-s-expr func-form))
+                   :func-lexem (make-lexem-wrapper (third func-form))
                    :parenthesis-info par-info
                    :func-arg-forms (mapcar (lambda (arg)
                                              (match-s-expr arg))
