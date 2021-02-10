@@ -22,7 +22,6 @@
             elements)))
 
 (defun match-s-expr (el)
-  (break)
   (ecase (first el)
     ((:atom) (make-lexem-wrapper (third el)))
     ((:list)
@@ -30,14 +29,12 @@
          (match-function-call el)))))
 
 (defun is-atom-s-expr? (s-expr)
-  (break)
   (eq (first s-expr) :atom))
 
 (defun make-lexem-wrapper (lexem)
   (make-instance 'lexem-wrapper-node :lexem-info lexem))
 
 (defun match-defun (list-element)
-  (break)
   (let ((thrd (third list-element)))
     (when (and (is-atom-s-expr? thrd)
                (is-lexem-symbol?= (third thrd) "defun")
