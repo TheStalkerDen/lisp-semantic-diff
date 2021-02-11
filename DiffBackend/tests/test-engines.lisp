@@ -4,6 +4,7 @@
           :diff-backend/lexer
           :diff-backend/nodes
           :diff-backend/abstract-sem-tree-generator
+          :diff-backend/statistics
           :rove)
   (:export
    #:def-ast-test
@@ -40,6 +41,7 @@
 
 (defmacro def-ast-test (name str obj-tree)
   `(deftest ,name
+     (init-stats)
      (let ((ast-gen-res (abstract-sem-tree-gen (parser (lexer ,str)))))
        (unless (deep-equal ast-gen-res ,obj-tree)
          (fail "AST-gen test failed")))))
