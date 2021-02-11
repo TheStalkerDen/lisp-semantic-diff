@@ -6,6 +6,17 @@
 
 (in-package :diff-backend/tests/abstract-sem-tree-generator)
 
+(def-ast-test atom.1
+    "1"
+  (list
+   (make-instance
+    'lexem-wrapper-node
+    :lexem-info (make-lexem
+                 "1"
+                 1
+                 1
+                 :integer))))
+
 (def-ast-test funcall.1
     "(fun)"
   (list
