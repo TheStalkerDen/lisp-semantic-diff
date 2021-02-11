@@ -65,7 +65,7 @@
       list-element
     (declare (ignore type))
     (make-instance 'function-call-node
-                   :func-lexem (make-lexem-wrapper (third func-form))
+                   :func-lexem (match-s-expr func-form)
                    :parenthesis-info par-info
                    :func-arg-forms (mapcar (lambda (arg)
                                              (match-s-expr arg))
