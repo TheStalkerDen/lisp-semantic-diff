@@ -1,13 +1,17 @@
 (uiop:define-package :diff-backend/abstract-sem-tree-generator
     (:nicknames :ast-gen)
-  (:use :cl :diff-backend/nodes)
+  (:use :cl :diff-backend/nodes
+        :diff-backend/statistics)
   (:import-from :diff-backend/lexer
-                :is-lexem-symbol?=)
+                :is-lexem-symbol?=
+                :lexem-string)
   (:export #:abstract-sem-tree-gen))
 
 (in-package :diff-backend/abstract-sem-tree-generator)
 
 (declaim (optimize safety))
+
+(defparameter *current-file-ver* 1)
 
 ;;; ast = abstract syntax tree
 (defun abstract-sem-tree-gen (ast)
@@ -42,14 +46,21 @@
       (destructuring-bind (type par-info keyword name parms &rest forms)
           list-element
         (declare (ignore type))
-        (make-instance 'defun-node
-                       :keyword-lexem (make-lexem-wrapper (third keyword))
-                       :func-name (make-lexem-wrapper (third name))
-                       :parenthesis-info par-info
-                       :parameters-list (gen-list-node parms)
-                       :body-forms (mapcar (lambda (form)
-                                             (match-s-expr form))
-                                           forms))))))
+        (let ((res-obj
+               (make-instance
+                'defun-node
+                :keyword-lexem (make-lexem-wrapper (third keyword))
+                :func-name (make-lexem-wrapper (third name))
+                :parenthesis-info par-info
+                :parameters-list (gen-list-node parms)
+                :body-forms (mapcar (lambda (form)
+                                      (match-s-expr form))
+                                    forms))))
+          (add-to-stats (lexem-string (third keyword))
+                        res-obj
+                        :stat-name :defuns
+                        :file-ver *current-file-ver*)
+          res-obj)))))
 
 (defun gen-list-node (list-element)
   (when (eq (first list-element) :list)
