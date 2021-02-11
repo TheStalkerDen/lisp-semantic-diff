@@ -9,6 +9,7 @@
                  (:file "lexer" :depends-on ("utils"))
                  (:file "parser" :depends-on ("lexer"))
                  (:file "nodes"  :depends-on ("utils"))
+                 (:file "statistics")
                  (:file "abstract-sem-tree-generator" :depends-on ("lexer" "nodes"))
                  (:file "comparator" :depends-on ("nodes"))
                  (:file "results-generator" :depends-on ("nodes"))
