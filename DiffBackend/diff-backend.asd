@@ -29,7 +29,8 @@
                          (:file "main")
                          (:file "lexer")
                          (:file "parser")
-                         (:file "abstract-sem-tree-generator"))))
+                         (:file "abstract-sem-tree-generator")
+                         (:file "statistics"))))
   :description "Test system for diff-backend"
   :perform (test-op :before (o c) (format t "Start testing~%"))
   :perform (test-op (o c) (symbol-call :rove :run c))
