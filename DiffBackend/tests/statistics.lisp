@@ -7,4 +7,18 @@
 (def-stats-test defuns.1
   "(defun a () 1)"
   `((:defuns
-     ("a"))))
+        ("a"))))
+
+(def-stats-test defuns.2
+  "(defun a () 1)
+(defun b () 2)"
+  `((:defuns
+        ("a" "b"))))
+
+(def-stats-test defuns.3
+  "(defun a () 1)
+(defun b () 2)
+(defun c () 3)"
+  `((:defuns
+        ("a" "b" "c"))))
+
