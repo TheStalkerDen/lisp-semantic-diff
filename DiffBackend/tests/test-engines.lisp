@@ -9,7 +9,8 @@
   (:export
    #:def-ast-test
    #:def-parser-test
-   #:def-lexer-test))
+   #:def-lexer-test
+   #:def-stats-test))
 
 (in-package :diff-backend/tests/test-engines)
 
@@ -75,3 +76,17 @@
            (format t "Type: ~A obj1: ~A ~%" (type-of obj1) obj1)
            (format t "Type: ~A obj2: ~A ~%" (type-of obj2) obj2)
            nil)))
+
+(defmacro def-stats-test (name str exp)
+  `(deftest ,name
+     (init-stats)
+     (let ((ast-gen-res (abstract-sem-tree-gen (parser (lexer ,str)))))
+       (declare (ignore ast-gen-res))
+       (let ((res
+              (loop :for value :being :the :hash-value :in (get-stats 1)
+                 :using (hash-key stat-name)
+                 :collect `(,stat-name
+                            ,(loop :for name :being :the :hash-key :in value
+                                :collect name)))))
+         (unless (deep-equal res ,exp)
+           (fail "STATS test failed!"))))))
