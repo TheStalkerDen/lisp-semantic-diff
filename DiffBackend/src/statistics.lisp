@@ -2,7 +2,8 @@
     (:nicknames :statistics)
   (:use :cl)
   (:export #:init-stats
-           #:add-to-stats))
+           #:add-to-stats
+           #:get-stats))
 
 (in-package :diff-backend/statistics)
 
@@ -29,3 +30,8 @@
        (2
         (setf (gethash name (gethash :defuns *file-ver-2-stats*))
               `(,obj :no-mod)))))))
+
+(defun get-stats (ver)
+  (alexandria:eswitch (ver)
+                      (1 *file-ver-1-stats*)
+                      (2 *file-ver-2-stats*)))
