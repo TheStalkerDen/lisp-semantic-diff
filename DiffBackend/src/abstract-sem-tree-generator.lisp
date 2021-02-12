@@ -56,7 +56,7 @@
                 :body-forms (mapcar (lambda (form)
                                       (match-s-expr form))
                                     forms))))
-          (add-to-stats (lexem-string (third keyword))
+          (add-to-stats (lexem-string (third name))
                         res-obj
                         :stat-name :defuns
                         :file-ver *current-file-ver*)
