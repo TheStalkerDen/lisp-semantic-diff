@@ -71,10 +71,12 @@
                :initarg :body-forms)))
 
 (defmethod calculate-no-whitespace-length ((obj defun-node))
-  (with-slots (function-name parameters-list body-forms) obj
+  (with-slots (function-name parameters-list body-forms keyword-lexem) obj
       (+ (calculate-no-whitespace-length function-name)
          (calculate-no-whitespace-length parameters-list)
-         (calculate-no-whitespace-length body-forms))))
+         (calculate-no-whitespace-length body-forms)
+         (calculate-no-whitespace-length keyword-lexem)
+         2)))
 
 (define-node function-call-node (parenthesis-mixin)
   ((func-lexem :accessor func-lexem
@@ -85,7 +87,8 @@
 (defmethod calculate-no-whitespace-length ((obj function-call-node))
   (with-slots (func-lexem func-arg-forms) obj 
     (+ (calculate-no-whitespace-length func-lexem)
-       (calculate-no-whitespace-length func-arg-forms))))
+       (calculate-no-whitespace-length func-arg-forms)
+       2)))
 
 (defmethod print-object ((obj function-call-node) stream)
   (with-slots (func-lexem) obj
@@ -98,8 +101,8 @@
 
 (defmethod calculate-no-whitespace-length ((obj list-node))
   (with-slots (elements) obj
-    (loop :for el :in elements
-         :sum (calculate-no-whitespace-length el))))
+    (+ 2 (loop :for el :in elements
+         :sum (calculate-no-whitespace-length el)))))
 
 (defmethod calculate-no-whitespace-length ((obj list))
   (loop :for el :in obj
