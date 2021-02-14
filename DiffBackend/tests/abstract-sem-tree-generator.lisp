@@ -89,3 +89,43 @@
                                  1
                                  13
                                  :integer))))))
+
+(def-ast-test defun.2
+    "(defun a (b) b)"
+  (list
+   (make-instance
+    'defun-node
+    :func-name (make-instance
+                'lexem-wrapper-node
+                :lexem-info (make-lexem
+                             "a"
+                             1
+                             8
+                             :symbol))
+    :keyword-lexem (make-instance
+                    'lexem-wrapper-node
+                    :lexem-info (make-lexem
+                                 "defun"
+                                 1
+                                 2
+                                 :symbol))
+    :parenthesis-info `((:lparen-coord 1 1)
+                        (:rparen-coord 1 15))
+    :parameters-list (make-instance
+                      'list-node
+                      :parenthesis-info `((:lparen-coord 1 10)
+                                          (:rparen-coord 1 12))
+                      :elements `(,(make-instance
+                                    'lexem-wrapper-node
+                                    :lexem-info (make-lexem
+                                                 "b"
+                                                 1
+                                                 11
+                                                 :symbol))))
+    :body-forms `(,(make-instance
+                    'lexem-wrapper-node
+                    :lexem-info (make-lexem
+                                 "b"
+                                 1
+                                 14
+                                 :symbol))))))
