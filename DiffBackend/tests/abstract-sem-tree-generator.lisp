@@ -129,3 +129,62 @@
                                  1
                                  14
                                  :symbol))))))
+
+(def-ast-test defun.3
+    "(defun a (b) (f b 1))"
+  (list
+   (make-instance
+    'defun-node
+    :func-name (make-instance
+                'lexem-wrapper-node
+                :lexem-info (make-lexem
+                             "a"
+                             1
+                             8
+                             :symbol))
+    :keyword-lexem (make-instance
+                    'lexem-wrapper-node
+                    :lexem-info (make-lexem
+                                 "defun"
+                                 1
+                                 2
+                                 :symbol))
+    :parenthesis-info `((:lparen-coord 1 1)
+                        (:rparen-coord 1 21))
+    :parameters-list (make-instance
+                      'list-node
+                      :parenthesis-info `((:lparen-coord 1 10)
+                                          (:rparen-coord 1 12))
+                      :elements `(,(make-instance
+                                    'lexem-wrapper-node
+                                    :lexem-info (make-lexem
+                                                 "b"
+                                                 1
+                                                 11
+                                                 :symbol))))
+    :body-forms `(,(make-instance
+                    'function-call-node
+                    :func-lexem (make-instance
+                                 'lexem-wrapper-node
+                                 :lexem-info (make-lexem
+                                              "f"
+                                              1
+                                              15
+                                              :symbol))
+                    :parenthesis-info `((:lparen-coord 1 14)
+                                        (:rparen-coord 1 20))
+                    :func-arg-forms `(
+                                      ,(make-instance
+                                       'lexem-wrapper-node
+                                       :lexem-info (make-lexem
+                                                    "b"
+                                                    1
+                                                    17
+                                                    :symbol))
+                                       ,(make-instance
+                                         'lexem-wrapper-node
+                                         :lexem-info (make-lexem
+                                                      "1"
+                                                      1
+                                                      19
+                                                      :integer))))))))
