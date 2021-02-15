@@ -1,6 +1,8 @@
 (uiop:define-package :diff-backend/comparator
     (:nicknames :comparator)
-  (:use :cl :diff-backend/nodes)
+  (:use :cl :diff-backend/nodes
+        :diff-backend/statistics
+        :anaphora)
   (:export #:start-compare))
 
 (in-package :diff-backend/comparator)
@@ -10,6 +12,37 @@
 (defparameter *maybe-new-nodes* nil)
 
 (defparameter *cur-sem-status* nil)
+
+
+(defun compare-results ()
+  (let ((ver1-stats (get-stats 1))
+        (ver2-stats (get-stats 2)))
+    (loop :for stat-name :being :the :hash-keys :of ver1-stats
+       :do
+         (compare-specific-stats-hts
+          (gethash stat-name ver1-stats)
+          (gethash stat-name ver2-stats)))))
+
+;;;stupid version
+(defun compare-specific-stats-hts (ht1 ht2)
+  (let* ((ht1-keys (alexandria:hash-table-keys ht1))
+         (ht2-keys (alexandria:hash-table-keys ht2))
+         (identical-keys (intersection ht1-keys ht2-keys))
+         (unique-ht1-keys (set-difference ht1-keys identical-keys))
+         (unique-ht2-keys (set-difference ht2-keys identical-keys)))
+    (dolist (name identical-keys)
+      (let ((val1 (gethash name ht1))
+            (val2 (gethash name ht2)))
+        (start-compare (first val1)
+                       (first val2))))
+    (dolist (name unique-ht1-keys)
+      (aif (gethash name ht1)
+           (setf (gethash name h1)
+                 (list (first it) :deleted))))
+    (dolist (name unique-ht2-keys)
+      (aif (gethash name ht1)
+           (setf (gethash name h1)
+                 (list (first it) :new))))))
 
 (defun start-compare (obj1 obj2)
   (let ((*maybe-deleted-nodes* nil
