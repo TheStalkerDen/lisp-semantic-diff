@@ -5,12 +5,14 @@
           :diff-backend/nodes
           :diff-backend/abstract-sem-tree-generator
           :diff-backend/statistics
+          :diff-backend/comparator
           :rove)
   (:export
    #:def-ast-test
    #:def-parser-test
    #:def-lexer-test
-   #:def-stats-test))
+   #:def-stats-test
+   #:def-simple-classifier-test))
 
 (in-package :diff-backend/tests/test-engines)
 
@@ -90,3 +92,16 @@
                                 :collect name)))))
          (unless (deep-equal res ,exp)
            (fail "STATS test failed!"))))))
+
+(defmacro def-simple-classifier-test (name str1 str2 exp1 exp2)
+  `(deftest ,name
+     (init-stats)
+     (let ((ast1 (abstract-sem-tree-gen (parser (lexer ,str1)) :curr-file 1))
+           (ast2 (abstract-sem-tree-gen (parser (lexer ,str2)) :curr-file 2)))
+       (declare (ignore ast1 ast2))
+       (compare-results)
+       (let ((res1 (gen-classified-results 1))
+             (res2 (gen-classified-results 2)))
+         (unless (and (deep-equal res1 ,exp1)
+                      (deep-equal res2 ,exp2))
+           (fail "Simple classified-test failed"))))))
