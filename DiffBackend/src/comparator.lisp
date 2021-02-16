@@ -3,7 +3,8 @@
   (:use :cl :diff-backend/nodes
         :diff-backend/statistics
         :anaphora)
-  (:export #:start-compare))
+  (:export #:start-compare
+           #:compare-results))
 
 (in-package :diff-backend/comparator)
 
@@ -13,6 +14,7 @@
 
 (defparameter *cur-sem-status* nil)
 
+(defparameter *was-modified* nil)
 
 (defun compare-results ()
   (let ((ver1-stats (get-stats 1))
@@ -33,26 +35,34 @@
     (dolist (name identical-keys)
       (let ((val1 (gethash name ht1))
             (val2 (gethash name ht2)))
-        (start-compare (first val1)
-                       (first val2))))
+        (when (start-compare (first val1)
+                             (first val2))
+          (aif (gethash name ht1)
+               (setf (gethash name ht1)
+                     (list (first it) :modified)))
+          (aif (gethash name ht2)
+               (setf (gethash name ht2)
+                     (list (first it) :modified)))))
     (dolist (name unique-ht1-keys)
       (aif (gethash name ht1)
-           (setf (gethash name h1)
+           (setf (gethash name ht1)
                  (list (first it) :deleted))))
     (dolist (name unique-ht2-keys)
       (aif (gethash name ht1)
-           (setf (gethash name h1)
-                 (list (first it) :new))))))
+           (setf (gethash name ht2)
+                 (list (first it) :new)))))))
 
 (defun start-compare (obj1 obj2)
   (let ((*maybe-deleted-nodes* nil
          ;(make-hash-table :test 'equal)
          )
         (*maybe-new-nodes* nil
-         ;(make-hash-table :test 'equal)
-         ))
+                                        ;(make-hash-table :test 'equal)
+        )
+        (*was-modified* nil))
     (compare obj1 obj2)
-    (maybe-issue-resolver)))
+    (maybe-issue-resolver)
+    *was-modified*))
 
 ;;;is also stupid
 (defun maybe-issue-resolver ()
@@ -88,7 +98,8 @@
     (format t "set-diff-statud default method. Something is wrong: ~A ~A~%" obj1 obj2)))
 
 (defmethod set-diff-status ((obj diff-status-mixin) status)
-  (setf (diff-status obj) status))
+  (setf (diff-status obj) status)
+  (setf *was-modified* t))
 
 ;;is super stupid now
 ;; has a bug...
