@@ -14,8 +14,9 @@
 (defparameter *current-file-ver* 1)
 
 ;;; ast = abstract syntax tree
-(defun abstract-sem-tree-gen (ast)
-  (top-level-rule ast))
+(defun abstract-sem-tree-gen (ast &key (curr-file 1))
+  (let ((*current-file-ver* curr-file))
+    (top-level-rule ast)))
 
 (defun top-level-rule (ast)
   (destructuring-bind (term-type annotations &rest elements)
