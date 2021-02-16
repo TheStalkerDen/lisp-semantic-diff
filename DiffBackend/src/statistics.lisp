@@ -3,7 +3,8 @@
   (:use :cl)
   (:export #:init-stats
            #:add-to-stats
-           #:get-stats))
+           #:get-stats
+           #:gen-classified-results))
 
 (in-package :diff-backend/statistics)
 
@@ -35,3 +36,45 @@
   (alexandria:eswitch (ver)
                       (1 *file-ver-1-stats*)
                       (2 *file-ver-2-stats*)))
+
+(defun gen-classified-results (file-ver)
+  (let ((stats-ht (alexandria:eswitch (file-ver)
+                    (1 *file-ver-1-stats*)
+                    (2 *file-ver-2-stats*)))
+        (result))
+    (maphash (lambda (stat-name names-ht)
+               (push
+                `(,stat-name ,@(filter-names-ht names-ht))
+                result))
+             stats-ht)
+    (reverse result)))
+
+(defun filter-names-ht (names-ht)
+  (let (no-mod-names
+        mod-names
+        deleted-names
+        new-names)
+    (maphash (lambda (name val)
+               (ecase (second val)
+                 (:no-mod
+                  (push name no-mod-names))
+                 (:modified
+                  (push name mod-names))
+                 (:deleted
+                  (push name deleted-names))
+                 (:new
+                  (push name new-names ))))
+             names-ht)
+    (remove nil
+            `(,(when no-mod-names
+                 `(:no-mod
+                   ,(reverse no-mod-names)))
+               ,(when mod-names
+                  `(:modified
+                    ,(reverse mod-names)))
+               ,(when deleted-names
+                  `(:deleted
+                    ,(reverse deleted-names)))
+               ,(when new-names
+                  `(:new
+                    ,(reverse new-names)))))))
