@@ -8,6 +8,8 @@
 
 (in-package :diff-backend/comparator)
 
+(declaim (optimize (debug 3)))
+
 (defparameter *maybe-deleted-nodes* nil)
 
 (defparameter *maybe-new-nodes* nil)
@@ -20,37 +22,37 @@
   (let ((ver1-stats (get-stats 1))
         (ver2-stats (get-stats 2)))
     (loop :for stat-name :being :the :hash-keys :of ver1-stats
-       :do
-         (compare-specific-stats-hts
-          (gethash stat-name ver1-stats)
-          (gethash stat-name ver2-stats)))))
+          :do
+             (compare-specific-stats-hts
+              (gethash stat-name ver1-stats)
+              (gethash stat-name ver2-stats)))))
 
 ;;;stupid version
 (defun compare-specific-stats-hts (ht1 ht2)
   (let* ((ht1-keys (alexandria:hash-table-keys ht1))
          (ht2-keys (alexandria:hash-table-keys ht2))
-         (identical-keys (intersection ht1-keys ht2-keys))
-         (unique-ht1-keys (set-difference ht1-keys identical-keys))
-         (unique-ht2-keys (set-difference ht2-keys identical-keys)))
+         (identical-keys (intersection ht1-keys ht2-keys :test #'string=))
+         (unique-ht1-keys (set-difference ht1-keys identical-keys :test #'string=))
+         (unique-ht2-keys (set-difference ht2-keys identical-keys :test #'string=)))
     (dolist (name identical-keys)
       (let ((val1 (gethash name ht1))
             (val2 (gethash name ht2)))
         (when (start-compare (first val1)
                              (first val2))
-          (aif (gethash name ht1)
-               (setf (gethash name ht1)
-                     (list (first it) :modified)))
-          (aif (gethash name ht2)
-               (setf (gethash name ht2)
-                     (list (first it) :modified)))))
+          (awhen (gethash name ht1)
+            (setf (gethash name ht1)
+                  (list (first it) :modified)))
+          (awhen (gethash name ht2)
+            (setf (gethash name ht2)
+                  (list (first it) :modified))))))
     (dolist (name unique-ht1-keys)
-      (aif (gethash name ht1)
-           (setf (gethash name ht1)
-                 (list (first it) :deleted))))
+      (awhen (gethash name ht1)
+        (setf (gethash name ht1)
+              (list (first it) :deleted))))
     (dolist (name unique-ht2-keys)
-      (aif (gethash name ht1)
-           (setf (gethash name ht2)
-                 (list (first it) :new)))))))
+      (awhen (gethash name ht2)
+        (setf (gethash name ht2)
+              (list (first it) :new))))))
 
 (defun start-compare (obj1 obj2)
   (let ((*maybe-deleted-nodes* nil
