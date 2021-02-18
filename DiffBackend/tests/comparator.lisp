@@ -26,6 +26,16 @@
         (:no-mod
          ("b" "a")))))
 
+(def-simple-classifier-test only-no-mod-defuns.3
+    "(defun a (k a) k a)"
+  "(defun a (k a) k   a)"
+  `((:defuns
+        (:no-mod
+         ("a"))))
+  `((:defuns
+        (:no-mod
+         ("a")))))
+
 (def-simple-classifier-test completely-different.1
     "(defun b () 1)"
   "(defun a () 1)"
