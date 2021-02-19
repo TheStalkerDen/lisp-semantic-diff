@@ -12,7 +12,8 @@
    #:def-parser-test
    #:def-lexer-test
    #:def-stats-test
-   #:def-simple-classifier-test))
+   #:def-simple-classifier-test
+   #:def-comparator-test))
 
 (in-package :diff-backend/tests/test-engines)
 
@@ -105,3 +106,13 @@
          (unless (and (deep-equal res1 ,exp1)
                       (deep-equal res2 ,exp2))
            (fail "Simple classified-test failed"))))))
+
+(defmacro def-comparator-test (name str1 str2 exp1 exp2)
+  `(deftest ,name
+     (init-stats)
+     (let ((ast1 (abstract-sem-tree-gen (parser (lexer ,str1)) :curr-file 1))
+           (ast2 (abstract-sem-tree-gen (parser (lexer ,str2)) :curr-file 2)))
+       (compare-results)
+       (unless (and (deep-equal ast1 ,exp1)
+                    (deep-equal ast2 ,exp2))
+         (fail "Comparator test failed")))))
