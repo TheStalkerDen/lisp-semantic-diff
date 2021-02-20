@@ -6,6 +6,7 @@
           :diff-backend/abstract-sem-tree-generator
           :diff-backend/statistics
           :diff-backend/comparator
+          :diff-backend/tests/test-utils
           :rove)
   (:export
    #:def-ast-test
@@ -107,12 +108,18 @@
                       (deep-equal res2 ,exp2))
            (fail "Simple classified-test failed"))))))
 
-(defmacro def-comparator-test (name str1 str2 exp1 exp2)
+(defmacro def-comparator-test (name str1 str2 exp1 exp2 &key simple-form)
   `(deftest ,name
      (init-stats)
      (let ((ast1 (abstract-sem-tree-gen (parser (lexer ,str1)) :curr-file 1))
            (ast2 (abstract-sem-tree-gen (parser (lexer ,str2)) :curr-file 2)))
        (compare-results)
-       (unless (and (deep-equal ast1 ,exp1)
-                    (deep-equal ast2 ,exp2))
+       (unless (and (deep-equal (if ,simple-form
+                                    (conv-for-cmp-test ast1)
+                                    ast1)
+                                ,exp1)
+                    (deep-equal (if ,simple-form
+                                    (conv-for-cmp-test ast2)
+                                    ast2)
+                                ,exp2))
          (fail "Comparator test failed")))))
