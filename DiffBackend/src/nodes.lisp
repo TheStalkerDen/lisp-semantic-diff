@@ -1,8 +1,7 @@
 (uiop:define-package :diff-backend/nodes
     (:nicknames :ast-nodes)
   (:use :cl :diff-backend/utils
-        :diff-backend/lexer)
-  (:export))
+        :diff-backend/lexer))
 
 (in-package :diff-backend/nodes)
 
