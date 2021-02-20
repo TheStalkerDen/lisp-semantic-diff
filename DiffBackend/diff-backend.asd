@@ -24,14 +24,15 @@
                "closer-mop"
                "rove")
   :components ((:module "tests"
-                        :components
-                        ((:file "test-engines")
-                         (:file "main")
-                         (:file "lexer")
-                         (:file "parser")
-                         (:file "abstract-sem-tree-generator")
-                         (:file "statistics")
-                         (:file "comparator"))))
+                :components
+                ((:file "test-utils")
+                 (:file "test-engines")
+                 (:file "main")
+                 (:file "lexer")
+                 (:file "parser")
+                 (:file "abstract-sem-tree-generator")
+                 (:file "statistics")
+                 (:file "comparator"))))
   :description "Test system for diff-backend"
   :perform (test-op :before (o c) (format t "Start testing~%"))
   :perform (test-op (o c) (symbol-call :rove :run c))
