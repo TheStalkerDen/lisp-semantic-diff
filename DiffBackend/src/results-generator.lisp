@@ -2,13 +2,22 @@
     (:nicknames :res-gen)
   (:use :cl :cl-json
         :diff-backend/nodes
-        :diff-backend/lexer)
-  (:export #:get-json-res))
+        :diff-backend/lexer
+        :diff-backend/statistics)
+  (:export #:get-json-res
+           #:get-stats-res))
 
 (in-package :diff-backend/results-generator)
 
 (defun get-json-res (obj stream)
   (encode-json (gener-res-object obj) stream))
+
+(defun get-stats-res (stream)
+  (encode-json
+   (alexandria:alist-hash-table
+    `(("old-ver" ,(gen-stats-ht-for-json 1))
+      ("new-ver" ,(gen-stats-ht-for-json 2))))
+   stream))
 
 (defgeneric gener-res-object (obj))
 
