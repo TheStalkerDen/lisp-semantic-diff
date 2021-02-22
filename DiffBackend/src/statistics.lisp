@@ -4,7 +4,8 @@
   (:export #:init-stats
            #:add-to-stats
            #:get-stats
-           #:gen-classified-results))
+           #:gen-classified-results
+           #:gen-stats-ht-for-json))
 
 (in-package :diff-backend/statistics)
 
@@ -78,3 +79,43 @@
                ,(when new-names
                   `(:new
                     ,(reverse new-names)))))))
+
+(defun gen-stats-ht-for-json (file-ver)
+  (let ((stats-ht (alexandria:eswitch (file-ver)
+                    (1 *file-ver-1-stats*)
+                    (2 *file-ver-2-stats*)))
+        (result))
+    (maphash (lambda (stat-name names-ht)
+               (push
+                `(,stat-name . ,(gen-filter-names-ht names-ht))
+                result))
+             stats-ht)
+    (break)
+    (alexandria:alist-hash-table result :test #'equal)))
+
+(defun gen-filter-names-ht (names-ht)
+  (let (no-mod-names
+        mod-names
+        deleted-names
+        new-names)
+    (maphash (lambda (name val)
+               (ecase (second val)
+                 (:no-mod
+                  (push name no-mod-names))
+                 (:modified
+                  (push name mod-names))
+                 (:deleted
+                  (push name deleted-names))
+                 (:new
+                  (push name new-names ))))
+             names-ht)
+    (alexandria:alist-hash-table
+     `((:no-mod .
+        ,(reverse no-mod-names))
+       (:modified .
+        ,(reverse mod-names))
+       (:deleted .
+        ,(reverse deleted-names))
+       (:new .
+        ,(reverse new-names)))
+     :test #'equal)))
