@@ -1,8 +1,40 @@
 (uiop:define-package :diff-backend/tests/test-utils
     (:use :cl :diff-backend/nodes)
-  (:export #:conv-for-cmp-test))
+  (:export
+   #:deep-equal
+   #:conv-for-cmp-test))
 
 (in-package :diff-backend/tests/test-utils)
+
+(defun deep-equal (obj1 obj2)
+  (if (equal (type-of obj1) (type-of obj2))
+      (if (typecase obj1 
+                (standard-object
+                 (loop :for slot :in (closer-mop:class-slots (class-of obj1))
+                    :for slot-name = (closer-mop:slot-definition-name slot)
+                    :always (or (and (null (slot-boundp obj1 slot-name))
+                                     (null (slot-boundp obj2 slot-name)))
+                                (if (deep-equal (slot-value obj1 slot-name)
+                                                (slot-value obj2 slot-name))
+                                    t
+                                    (progn (print obj1)
+                                           (print obj2)
+                                           nil)))))
+                (list (every #'deep-equal obj1 obj2))
+                (t (unless (equalp obj1 obj2)
+                     (print obj1)
+                     (print obj2)
+                     (return-from deep-equal nil))
+                   t))
+          t
+          (progn
+            (print obj1)
+            (print obj2)
+            nil))
+    (progn (print "Not equal types")
+           (format t "Type: ~A obj1: ~A ~%" (type-of obj1) obj1)
+           (format t "Type: ~A obj2: ~A ~%" (type-of obj2) obj2)
+           nil)))
 
 (defgeneric conv-for-cmp-test (obj))
 
