@@ -15,8 +15,8 @@
 (defun get-stats-res (stream)
   (encode-json
    (alexandria:alist-hash-table
-    `(("old-ver" ,(gen-stats-ht-for-json 1))
-      ("new-ver" ,(gen-stats-ht-for-json 2))))
+    `(("old-ver" . ,(gen-stats-ht-for-json 1))
+      ("new-ver" . ,(gen-stats-ht-for-json 2))))
    stream))
 
 (defgeneric gener-res-object (obj))
