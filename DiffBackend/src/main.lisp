@@ -21,6 +21,7 @@
 
 
 (defun true-differ-v01 (file1 file2)
+  (init-stats)
  (multiple-value-bind (res1 res2)
      (compare-two-files file1 file2)
    (with-open-file (stream1 "res1.json" :direction :output
@@ -30,7 +31,8 @@
        (with-open-file (stream3 "stats.json" :direction :output
                                              :if-exists :supersede)
          (get-json-res res1 stream1)
-         (get-json-res res2 stream2))))))
+         (get-json-res res2 stream2)
+         (get-stats-res stream3))))))
 
 (defun differ-v01 (str1 str2)
   (init-stats)
