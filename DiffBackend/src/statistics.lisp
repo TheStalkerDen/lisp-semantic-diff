@@ -90,7 +90,6 @@
                 `(,stat-name . ,(gen-filter-names-ht names-ht))
                 result))
              stats-ht)
-    (break)
     (alexandria:alist-hash-table result :test #'equal)))
 
 (defun gen-filter-names-ht (names-ht)
