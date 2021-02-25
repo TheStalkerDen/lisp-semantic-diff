@@ -121,4 +121,13 @@
    `(:<el> :<el> (nil) (:moved :<el>) (:moved :<el>) :<el>))
   :simple-form t)
 
+(def-comparator-test cmp.test.5
+  "(defun a () 1 2 3)"
+  "(defun a () 1 1 3)"
+  (list
+   `(:<el> :<el> (nil) :<el> (:deleted :<el>) :<el>))
+  (list
+   `(:<el> :<el> (nil) :<el> (:new :<el>) :<el>))
+  :simple-form t)
+
 
