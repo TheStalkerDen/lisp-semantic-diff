@@ -56,8 +56,9 @@
                  diff-status)
               ,(conv-for-cmp-test keyword-lexem)
               ,(conv-for-cmp-test function-name)
-              (,(conv-for-cmp-test parameters-list))
-              ,@(conv-for-cmp-test body-forms)))))
+              (,@(conv-for-cmp-test parameters-list))
+              ,@(conv-for-cmp-test body-forms))
+            :count 1 :end 1)))
 
 (defmethod conv-for-cmp-test ((obj function-call-node))
   (with-slots (diff-status func-lexem func-arg-forms) obj
