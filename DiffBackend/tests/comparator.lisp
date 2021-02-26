@@ -89,45 +89,52 @@
   "(defun a () 1)"
   "(defun a () 2)"
   (list
-   `(:<el> :<el> (nil) (:deleted :<el>)))
+   `(:<el> :<el> () (:deleted :<el>)))
   (list
-   `(:<el> :<el> (nil) (:new :<el>)))
+   `(:<el> :<el> () (:new :<el>)))
   :simple-form t)
 
 (def-comparator-test cmp.test.2
   "(defun a () 1 2)"
   "(defun a () 2)"
   (list
-   `(:<el> :<el> (nil) (:deleted :<el>) (:moved :<el>)))
+   `(:<el> :<el> () (:deleted :<el>) (:moved :<el>)))
   (list
-   `(:<el> :<el> (nil) (:moved :<el>)))
+   `(:<el> :<el> () (:moved :<el>)))
   :simple-form t)
 
 (def-comparator-test cmp.test.3
   "(defun a () 1 2)"
   "(defun a () 2 1)"
   (list
-   `(:<el> :<el> (nil) (:moved :<el>) (:moved :<el>)))
+   `(:<el> :<el> () (:moved :<el>) (:moved :<el>)))
   (list
-   `(:<el> :<el> (nil) (:moved :<el>) (:moved :<el>)))
+   `(:<el> :<el> () (:moved :<el>) (:moved :<el>)))
   :simple-form t)
 
 (def-comparator-test cmp.test.4
   "(defun a () 1 2 3)"
   "(defun a () 2 1 3)"
   (list
-   `(:<el> :<el> (nil) (:moved :<el>) (:moved :<el>) :<el>))
+   `(:<el> :<el> () (:moved :<el>) (:moved :<el>) :<el>))
   (list
-   `(:<el> :<el> (nil) (:moved :<el>) (:moved :<el>) :<el>))
+   `(:<el> :<el> () (:moved :<el>) (:moved :<el>) :<el>))
   :simple-form t)
 
 (def-comparator-test cmp.test.5
   "(defun a () 1 2 3)"
   "(defun a () 1 1 3)"
   (list
-   `(:<el> :<el> (nil) :<el> (:deleted :<el>) :<el>))
+   `(:<el> :<el> () :<el> (:deleted :<el>) :<el>))
   (list
-   `(:<el> :<el> (nil) :<el> (:new :<el>) :<el>))
+   `(:<el> :<el> () :<el> (:new :<el>) :<el>))
   :simple-form t)
 
-
+(def-comparator-test cmp.test.6
+  "(defun f1 (a b) (add a b 1))"
+  "(defun f1 (a b) (add a b 2))"
+  (list
+   `(:<el> :<el> (:<el> :<el>) (:<el> :<el> :<el> (:deleted :<el>))))
+  (list
+   `(:<el> :<el> (:<el> :<el>) (:<el> :<el> :<el> (:new :<el>))))
+  :simple-form t)
