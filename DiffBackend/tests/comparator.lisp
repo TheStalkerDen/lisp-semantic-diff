@@ -147,3 +147,12 @@
   (list
    `(:<el> :<el> (:<el> :<el>) (:new :<el> :<el> :<el> :<el>)))
   :simple-form t)
+
+(def-comparator-test cmp.test.8
+  "(defun f1 (a b) (add a b 1))"
+  "(defun f1 (a c) (add a c 1))"
+  (list
+   `(:<el> :<el> (:<el> (:deleted :<el>)) (:<el> :<el> (:deleted :<el>) :<el>)))
+  (list
+   `(:<el> :<el> (:<el> (:new :<el>)) (:<el> :<el>  (:new :<el>) :<el>)))
+  :simple-form t)
