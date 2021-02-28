@@ -156,3 +156,12 @@
   (list
    `(:<el> :<el> (:<el> (:new :<el>)) (:<el> :<el>  (:new :<el>) :<el>)))
   :simple-form t)
+
+(def-comparator-test cmp.test.9
+  "(defun f1 () (min 1 2) (add 1 2))"
+  "(defun f1 () (add 1 2))"
+  (list
+   `(:<el> :<el> () (:deleted :<el> :<el> :<el>) (:moved :<el> :<el> :<el>)))
+  (list
+   `(:<el> :<el> () (:moved :<el> :<el> :<el>)))
+  :simple-form t)
