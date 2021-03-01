@@ -165,3 +165,12 @@
   (list
    `(:<el> :<el> () (:moved :<el> :<el> :<el>)))
   :simple-form t)
+
+(def-comparator-test cmp.test.10
+  "(defun f1 () (min 1 2) (ren 23) (add 1 2))"
+  "(defun f1 () (ren 23) (gen 12) (add 1 2))"
+  (list
+   `(:<el> :<el> () (:deleted :<el> :<el> :<el>) (:moved :<el> :<el>) (:<el> :<el> :<el>)))
+  (list
+   `(:<el> :<el> () (:moved :<el> :<el>) (:new :<el> :<el>) (:<el> :<el> :<el>)))
+  :simple-form t)
