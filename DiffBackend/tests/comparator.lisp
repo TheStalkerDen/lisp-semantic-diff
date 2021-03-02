@@ -174,3 +174,12 @@
   (list
    `(:<el> :<el> () (:moved :<el> :<el>) (:new :<el> :<el>) (:<el> :<el> :<el>)))
   :simple-form t)
+
+(def-comparator-test cmp.test.11
+  "(defun f1 () (gen 12))"
+  "(defun f1 () (ren 23) (gen 12) (gen 12))"
+  (list
+   `(:<el> :<el> () (:moved :<el> :<el>)))
+  (list
+   `(:<el> :<el> () (:new :<el> :<el>) (:moved :<el> :<el>) (:new :<el> :<el>)))
+  :simple-form t)
