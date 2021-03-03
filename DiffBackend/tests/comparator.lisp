@@ -183,3 +183,12 @@
   (list
    `(:<el> :<el> () (:new :<el> :<el>) (:moved :<el> :<el>) (:new :<el> :<el>)))
   :simple-form t)
+
+(def-comparator-test cmp.test.12
+  "(defun f1 () (gen 12))"
+  "(defun f1 () (wrapper (gen 12)))"
+  (list
+   `(:<el> :<el> () (:moved :<el> :<el>)))
+  (list
+   `(:<el> :<el> () (:new :<el> (:moved :<el> :<el>))))
+  :simple-form t)
