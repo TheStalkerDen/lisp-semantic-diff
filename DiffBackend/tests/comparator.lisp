@@ -210,3 +210,12 @@
   (list
    `(:<el> :<el> () (:new :<el> (:moved :<el> :<el>) (:new :<el> :<el>) (:new :<el> :<el>))))
   :simple-form t)
+
+(def-comparator-test cmp.test.15
+  "(defun f1 () (gen 12) (f (g 1)))"
+  "(defun f1 () (g 1) (gen 12))"
+  (list
+   `(:<el> :<el> () (:moved :<el> :<el>) (:deleted (:moved :<el> :<el>))))
+  (list
+   `(:<el> :<el> () (:moved :<el> :<el>) (:moved :<el> :<el>)))
+  :simple-form t)
