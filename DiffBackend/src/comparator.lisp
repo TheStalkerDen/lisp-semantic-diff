@@ -48,11 +48,11 @@
     (dolist (name unique-ht1-keys)
       (awhen (gethash name ht1)
         (setf (gethash name ht1)
-              (list (first it) :deleted))))
+              (list (set-diff-status (first it) :deleted) :deleted))))
     (dolist (name unique-ht2-keys)
       (awhen (gethash name ht2)
         (setf (gethash name ht2)
-              (list (first it) :new))))))
+              (list (set-diff-status (first it) :new) :new))))))
 
 (defun start-compare (obj1 obj2)
   (let ((*maybe-deleted-nodes* nil
