@@ -62,10 +62,10 @@
     (compare-two-str str1 str2)))
 
 (defun compare-two-str (str1 str2)
-  (let ((ast-tree-1 (get-abstract-sem-tree-from-string str1))
-        (ast-tree-2 (get-abstract-sem-tree-from-string str2)))
+  (let ((ast-tree-1 (get-abstract-sem-tree-from-string str1 1))
+        (ast-tree-2 (get-abstract-sem-tree-from-string str2 2)))
     (compare-results)
     (values ast-tree-1 ast-tree-2)))
 
-(defun get-abstract-sem-tree-from-string (str)
-  (abstract-sem-tree-gen (parser (lexer str))))
+(defun get-abstract-sem-tree-from-string (str cur-file)
+  (abstract-sem-tree-gen (parser (lexer str)) :curr-file cur-file))
