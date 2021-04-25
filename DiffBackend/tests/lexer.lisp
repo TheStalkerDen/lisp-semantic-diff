@@ -54,10 +54,20 @@
   (list
    (make-lexem "!@$%^&*-=_<>?." 1 1 :symbol)))
 
-(def-lexer-test integer
+(def-lexer-test integer.1
     "12345"
   (list
    (make-lexem "12345" 1 1 :integer)))
+
+(def-lexer-test integer.2
+    "-12345"
+  (list
+   (make-lexem "-12345" 1 1 :integer)))
+
+(def-lexer-test integer.3
+    "+12345"
+  (list
+   (make-lexem "+12345" 1 1 :integer)))
 
 (def-lexer-test quote.1
     "'a"
