@@ -20,15 +20,28 @@
 
 (declaim (optimize (debug 3)))
 
-(defmacro def-lexer-test (name str lexems-list)
+(defmacro def-lexer-test (name str lexems-list
+                          &key
+                            exp-comments
+                            exp-lex-errors)
+  (declare (ignore exp-lex-errors))
   `(deftest ,name
-     (let ((res (lexer ,str)))
-       (assert (= (length res) (length ,lexems-list)))
+     (multiple-value-bind (res-lexems res-comments res-lex-errors)
+         (lexer ,str)
+       (declare (ignore res-lex-errors))
+       (assert (= (length res-lexems) (length ,lexems-list)))
        (loop
-          :for res-lexem :in res
-          :for exp-lemem :in ,lexems-list
-          :do (unless (equal-lexem? res-lexem exp-lemem)
-                (fail "BAD!"))))))
+         :for res-lexem :in res-lexems
+         :for exp-lemem :in ,lexems-list
+         :do (unless (equal-lexem? res-lexem exp-lemem)
+               (fail (format nil
+                             "Lexem ~S != ~S"
+                             res-lexem
+                             exp-lemem))))
+       (when (or ,exp-comments res-comments)
+         (deep-equal (sort (alexandria:hash-table-alist res-comments)
+                           #'< :key #'first)
+                     ,exp-comments)))))
 
 (defmacro def-parser-test (name str parser-exp)
   `(deftest ,name
