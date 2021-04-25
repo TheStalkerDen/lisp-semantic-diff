@@ -5,7 +5,8 @@
         :diff-backend/lexer
         :diff-backend/statistics)
   (:export #:get-json-res
-           #:get-stats-res))
+           #:get-stats-res
+           #:get-json-comments))
 
 (in-package :diff-backend/results-generator)
 

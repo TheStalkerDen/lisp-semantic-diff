@@ -77,4 +77,14 @@
     (values ast-tree-1 ast-tree-2)))
 
 (defun get-abstract-sem-tree-from-string (str cur-file)
-  (abstract-sem-tree-gen (parser (lexer str)) :curr-file cur-file))
+  (multiple-value-bind (res-lexems comments lex-errors)
+      (lexer str)
+    (when lex-errors
+      (error "Lex errors !!! ~A" lex-errors))
+    (when (> (hash-table-count comments) 0)
+      (cond ((= cur-file 1)
+             (setf *comment-table-1* comments))
+            ((= cur-file 2)
+             (setf *comment-table-2* comments))
+            (t (error "Error value of cur-file"))))
+    (abstract-sem-tree-gen (parser res-lexems) :curr-file cur-file)))
