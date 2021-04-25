@@ -10,6 +10,15 @@
 
 (in-package :diff-backend/results-generator)
 
+(defmacro add-to-ht (key value)
+  `(setf (gethash ,key ht) ,value))
+
+(defmacro with-ht (&body body)
+  `(let ((ht (make-hash-table :test #'equal)))
+     (progn
+       ,@body)
+     ht))
+
 (defun get-json-res (obj stream)
   (encode-json (gener-res-object obj) stream))
 
@@ -24,19 +33,10 @@
   (encode-json
    (with-ht
      (loop :for line-num :being :the :hash-key :in comment-table :using (:hash-value val)
-           :do (add-to-ht line-num  (alexandria:plist-hash-table val))))
+           :do (setf (gethash line-num ht) (alexandria:plist-hash-table val))))
    stream))
 
 (defgeneric gener-res-object (obj))
-
-(defmacro add-to-ht (key value)
-  `(setf (gethash ,key ht) ,value))
-
-(defmacro with-ht (&body body)
-  `(let ((ht (make-hash-table :test #'equal)))
-     (progn
-       ,@body)
-     ht))
 
 (defmethod gener-res-object ((obj defun-node))
   (with-ht
