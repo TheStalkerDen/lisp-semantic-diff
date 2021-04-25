@@ -13,45 +13,54 @@
                 :init-stats))
 (in-package :diff-backend)
 
+(defvar *comment-table-1*)
+(defvar *comment-table-2*)
 
 (defun main ()
   (let ((cmd-args (uiop:command-line-arguments)))
     (print cmd-args)
-    (true-differ-v01 (first cmd-args) (second cmd-args))))
+    (differ-v01 (first cmd-args) (second cmd-args))))
 
 
-(defun true-differ-v01 (file1 file2)
+(defun differ-v01 (file1 file2)
   (init-stats)
- (multiple-value-bind (res1 res2)
-     (compare-two-files file1 file2)
-   (with-open-file (stream1 "res1.json" :direction :output
-                            :if-exists :supersede)
-     (with-open-file (stream2 "res2.json" :direction :output
-                                          :if-exists :supersede)
-       (with-open-file (stream3 "stats.json" :direction :output
-                                             :if-exists :supersede)
-         (get-json-res res1 stream1)
-         (get-json-res res2 stream2)
-         (get-stats-res stream3))))))
+  (multiple-value-bind (res1 res2)
+      (compare-two-files file1 file2)
+    (generate-json-outputs res1 res2)))
 
-(defun differ-v01 (str1 str2)
+(defun str-differ-v01 (str1 str2)
   (init-stats)
- (multiple-value-bind (res1 res2)
-     (compare-two-str str1 str2)
-   (with-open-file (stream1 "res1.json" :direction :output
-                            :if-exists :supersede)
-     (with-open-file (stream2 "res2.json" :direction :output
-                                          :if-exists :supersede)
-       (with-open-file (stream3 "stats.json" :direction :output
+  (multiple-value-bind (res1 res2)
+      (compare-two-str str1 str2)
+    (generate-json-outputs res1 res2)))
+
+(defun generate-json-outputs (res1 res2)
+  (when *comment-table-1*
+    (with-open-file (stream "comments1.json" :direction :output
                                              :if-exists :supersede)
-         (get-json-res res1 stream1)
-         (get-json-res res2 stream2)
-         (get-stats-res stream3))))))
+      (get-json-comments *comment-table-1* stream)))
+  (when *comment-table-2*
+    (with-open-file (stream "comments2.json" :direction :output
+                                             :if-exists :supersede)
+      (get-json-comments *comment-table-2* stream)))
+  (with-open-file (stream "res1.json" :direction :output
+                                      :if-exists :supersede)
+    (get-json-res res1 stream))
+  (with-open-file (stream "res2.json" :direction :output
+                                      :if-exists :supersede)
+    (get-json-res res2 stream))
+  (with-open-file (stream "stats.json" :direction :output
+                                       :if-exists :supersede)
+    (get-stats-res stream)))
 
 (defun simple-differ-str (str1 str2 &optional (out1 t ) (out2 t) (out3 t))
   (init-stats)
   (multiple-value-bind (res1 res2)
       (compare-two-str str1 str2)
+    (when *comment-table-1*
+      (get-json-comments *comment-table-1* t))
+    (when *comment-table-2*
+      (get-json-comments *comment-table-2* t))
     (get-json-res res1 out1)
     (get-json-res res2 out2)
     (get-stats-res out3)))
