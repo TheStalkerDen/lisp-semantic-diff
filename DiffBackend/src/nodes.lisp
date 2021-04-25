@@ -1,7 +1,8 @@
 (uiop:define-package :diff-backend/nodes
     (:nicknames :ast-nodes)
   (:use :cl :diff-backend/utils
-        :diff-backend/lexer))
+        :diff-backend/lexer)
+  (:export #:get-lexem-name))
 
 (in-package :diff-backend/nodes)
 
@@ -11,7 +12,7 @@
                        &optional class-option)
   `(progn
      (defclass* ,name (,@(nconc superclasses '(diff-status-mixin no-whitespace-length-mixin)))
-       ,slot-specs
+         ,slot-specs
        ,(when class-option
           class-option))))
 
@@ -49,6 +50,11 @@
 (define-node lexem-wrapper-node ()
   ((lexem-info :accessor lexem-info
                :initarg :lexem-info)))
+
+(defgeneric get-lexem-name (obj))
+
+(defmethod get-lexem-name ((obj lexem-wrapper-node))
+  (slot-value (slot-value obj 'lexem-info) 'string))
 
 (defmethod calculate-no-whitespace-length ((obj lexem-wrapper-node))
   (with-slots (lexem-info) obj
