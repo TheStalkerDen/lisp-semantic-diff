@@ -19,6 +19,13 @@
       ("new-ver" . ,(gen-stats-ht-for-json 2))))
    stream))
 
+(defun get-json-comments (comment-table stream)
+  (encode-json
+   (with-ht
+     (loop :for line-num :being :the :hash-key :in comment-table :using (:hash-value val)
+           :do (add-to-ht line-num  (alexandria:plist-hash-table val))))
+   stream))
+
 (defgeneric gener-res-object (obj))
 
 (defmacro add-to-ht (key value)
