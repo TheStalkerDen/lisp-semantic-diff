@@ -2,6 +2,7 @@
 #define DIFFVIEWERTEXTBUILDER_H
 
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 
 
@@ -11,10 +12,11 @@ class DiffViewerTextBuilder
 public:
     DiffViewerTextBuilder();
 
-    QString generateText(QJsonValue, bool);
+    QString generateText(QJsonValue, QJsonObject, bool);
 
 private:
     QString text;
+    QJsonObject comments;
     bool isTopLevel;
 
     int cur_line=1;
@@ -23,6 +25,7 @@ private:
     int diff_line = 0;
 
     int getTrueLine(int cur_line);
+    void pasteNewLinesAndComments(int lines);
     void pasteTopLevel(const QJsonArray& doc);
     void pasteLexem(const QJsonObject& lex);
     void pasteParent(QChar parent);

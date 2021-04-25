@@ -16,8 +16,8 @@ QString DiffViewerText::getText()
     return text;
 }
 
-void DiffViewerText::setTextDescriptionFromJson(QJsonValue jsonVal,bool isTopLevel)
+void DiffViewerText::setTextDescriptionFromJson(QJsonValue jsonVal,QJsonObject comments, bool isTopLevel)
 {
     DiffViewerTextBuilder builder;
-    text = builder.generateText(jsonVal, isTopLevel);
+    text = builder.generateText(jsonVal,comments, isTopLevel);
 }

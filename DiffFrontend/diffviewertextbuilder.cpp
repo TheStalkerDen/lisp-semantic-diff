@@ -8,9 +8,10 @@ DiffViewerTextBuilder::DiffViewerTextBuilder()
 
 }
 
-QString DiffViewerTextBuilder::generateText(QJsonValue jsonVal,bool isTopLevel = true)
+QString DiffViewerTextBuilder::generateText(QJsonValue jsonVal, QJsonObject comments, bool isTopLevel= true)
 {
     this->isTopLevel = isTopLevel;
+    this->comments = comments;
     text.append("<pre>");
     if(isTopLevel){
         pasteTopLevel(jsonVal.toArray());
@@ -31,6 +32,23 @@ void DiffViewerTextBuilder::pasteTopLevel(const QJsonArray &array)
     loopArray(array);
 }
 
+void DiffViewerTextBuilder::pasteNewLinesAndComments(int next_line){
+    QJsonObject comment;
+    while(cur_line < next_line){
+        if(comments[QString::number(cur_line+diff_line)] != QJsonValue::Undefined) {
+            comment = comments[QString::number(cur_line+diff_line)].toObject();
+            int column_diff = comment["column"].toInt() - cur_column;
+            pasteSpaces(column_diff);
+            text.append("<font style=\"color:#cccccc;\">");
+            text.append(comment["comment"].toString());
+            text.append("</font>");
+
+        }
+        text.append("\n");
+        cur_column = 1;
+        cur_line++;
+    }
+}
 
 void DiffViewerTextBuilder::pasteLexem(const QJsonObject &lex)
 {
@@ -57,17 +75,15 @@ void DiffViewerTextBuilder::pasteParent(QChar parent){
         cur_column++;
 }
 
+
 void DiffViewerTextBuilder::pasteSpacesBeforeParent(int line, int column)
 {
     if(cur_line == line){
         pasteSpaces(column - cur_column);
-        cur_line = line;
         cur_column = column;
     } else {
-        int line_delta = line - cur_line;
-        text.append(QString(line_delta, '\n'));
+        pasteNewLinesAndComments(line);
         pasteSpaces(column - 1);
-        cur_line = line;
         cur_column = column;
     }
 }
@@ -78,9 +94,8 @@ void DiffViewerTextBuilder::genLexem(const QJsonObject &lex)
     if(getTrueLine(lexem_pos[0].toInt()) == cur_line){
         pasteSpaces(lexem_pos[1].toInt() - cur_column);
     } else {
-        int line_delta = getTrueLine(lexem_pos[0].toInt()) - cur_line;
-        text.append(QString(line_delta, '\n'));
-        pasteSpaces(lexem_pos[1].toInt());
+        pasteNewLinesAndComments(getTrueLine(lexem_pos[0].toInt()));
+        pasteSpaces(lexem_pos[1].toInt() - cur_column);
         cur_line = getTrueLine(lexem_pos[0].toInt());
     }
     pasteLexem(lex);

@@ -34,10 +34,12 @@ private slots:
 private:
     Ui::MainWindow *ui;
     void fillStatsTree();
-    void analyzeAST(QJsonDocument& doc, int num);
+    void analyzeSynTree(QJsonDocument& doc, int num);
     QJsonDocument getJsonDocument(QString pathname);
-    QJsonDocument file1;
-    QJsonDocument file2;
+    QJsonDocument synTreeJson1;
+    QJsonDocument synTreeJson2;
+    QJsonObject commentsJsonObj1;
+    QJsonObject commentsJsonObj2;
 
 };
 #endif // MAINWINDOW_H

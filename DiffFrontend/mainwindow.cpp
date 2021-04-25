@@ -31,19 +31,25 @@ void MainWindow::on_actionloadFiles_triggered()
     QString file = "diff-backend.exe";
     qDebug() << file;
     backend_process->start(file,lispFiles);
-    if(!backend_process->waitForFinished()){
+    if (!backend_process->waitForFinished()) {
         qDebug() << "something is wrong";
     }
 
     stats = Stat("stats.json");
     fillStatsTree();
-    file1 = getJsonDocument("res1.json");
-    file2 = getJsonDocument("res2.json");
-    analyzeAST(file1,1);
-    analyzeAST(file2,2);
+    synTreeJson1 = getJsonDocument("res1.json");
+    synTreeJson2 = getJsonDocument("res2.json");
+    if (QFile::exists("comments1.json")) {
+        commentsJsonObj1 = getJsonDocument("comments1.json").object();
+    }
+    if (QFile::exists("comments2.json")) {
+        commentsJsonObj2 = getJsonDocument("comments2.json").object();
+    }
+    analyzeSynTree(synTreeJson1,1);
+    analyzeSynTree(synTreeJson2,2);
 
-    doc1.setTextDescriptionFromJson(QJsonValue(file1.array()));
-    doc2.setTextDescriptionFromJson(QJsonValue(file2.array()));
+    doc1.setTextDescriptionFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
+    doc2.setTextDescriptionFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
     ui->plainTextEdit->appendHtml(doc1.getText());
     ui->plainTextEdit_2->appendHtml(doc2.getText());
 }
@@ -99,7 +105,7 @@ void MainWindow::fillStatsTree()
     defunsStats->addChild(dels);
 }
 
-void MainWindow::analyzeAST(QJsonDocument &doc, int num)
+void MainWindow::analyzeSynTree(QJsonDocument &doc, int num)
 {
    const auto& topLevelArray = doc.array();
    for(const auto& obj: topLevelArray){
@@ -117,7 +123,7 @@ QJsonDocument MainWindow::getJsonDocument(QString pathname)
 {
     QFile loadFile(pathname);
     if(!loadFile.open(QIODevice::ReadOnly)){
-        qWarning("Couldn't open save file.");
+        qWarning("Couldn't open file.");
         return QJsonDocument();
     }
 
@@ -131,20 +137,20 @@ void MainWindow::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
     qDebug() << item->text(0);
     QString text = item->text(0);
     if(text == "all"){
-        doc1.setTextDescriptionFromJson(QJsonValue(file1.array()));
-        doc2.setTextDescriptionFromJson(QJsonValue(file2.array()));
+        doc1.setTextDescriptionFromJson(QJsonValue(synTreeJson1.array()), commentsJsonObj1);
+        doc2.setTextDescriptionFromJson(QJsonValue(synTreeJson2.array()), commentsJsonObj2);
         ui->plainTextEdit->clear();
         ui->plainTextEdit_2->clear();
         ui->plainTextEdit->appendHtml(doc1.getText());
         ui->plainTextEdit_2->appendHtml(doc2.getText());
     } else {
         if(nameToObj1.contains(text)){
-            doc1.setTextDescriptionFromJson(QJsonValue(nameToObj1[text]),false);
+            doc1.setTextDescriptionFromJson(QJsonValue(nameToObj1[text]), commentsJsonObj1,false);
             ui->plainTextEdit->clear();
             ui->plainTextEdit->appendHtml(doc1.getText());
         }
         if(nameToObj2.contains(text)){
-            doc2.setTextDescriptionFromJson(QJsonValue(nameToObj2[text]),false);
+            doc2.setTextDescriptionFromJson(QJsonValue(nameToObj2[text]), commentsJsonObj2,false);
             ui->plainTextEdit_2->clear();
             ui->plainTextEdit_2->appendHtml(doc2.getText());
         }
