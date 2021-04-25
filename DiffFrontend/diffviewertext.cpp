@@ -16,18 +16,8 @@ QString DiffViewerText::getText()
     return text;
 }
 
-void DiffViewerText::setTextDescriptionFromJson(QString pathnane)
+void DiffViewerText::setTextDescriptionFromJson(QJsonValue jsonVal,bool isTopLevel)
 {
-    QFile loadFile(pathnane);
-    if(!loadFile.open(QIODevice::ReadOnly)){
-        qWarning("Couldn't open save file.");
-        return;
-    }
-
-    QByteArray saveData = loadFile.readAll();
-
-    loadedJson = QJsonDocument::fromJson(saveData);
     DiffViewerTextBuilder builder;
-    text = builder.generateText(loadedJson);
-
+    text = builder.generateText(jsonVal, isTopLevel);
 }

@@ -11,20 +11,25 @@ class DiffViewerTextBuilder
 public:
     DiffViewerTextBuilder();
 
-    QString generateText(QJsonDocument);
+    QString generateText(QJsonValue, bool);
 
 private:
     QString text;
+    bool isTopLevel;
 
     int cur_line=1;
     int cur_column=1;
 
-    void pasteLexem(QJsonObject& lex);
+    int diff_line = 0;
+
+    int getTrueLine(int cur_line);
+    void pasteTopLevel(const QJsonArray& doc);
+    void pasteLexem(const QJsonObject& lex);
     void pasteParent(QChar parent);
     void pasteSpacesBeforeParent(int line, int column);
-    void genLexem(QJsonObject& lex);
-    void genList(QJsonObject& list);
-    void loopArray(QJsonArray& array);
+    void genLexem(const QJsonObject& lex);
+    void genList(const QJsonObject& list,bool isFirstCall);
+    void loopArray(const QJsonArray& array);
     void pasteSpaces(int count);
 
 };

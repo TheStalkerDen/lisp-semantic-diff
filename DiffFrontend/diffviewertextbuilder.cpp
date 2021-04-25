@@ -8,16 +8,31 @@ DiffViewerTextBuilder::DiffViewerTextBuilder()
 
 }
 
-QString DiffViewerTextBuilder::generateText(QJsonDocument doc)
+QString DiffViewerTextBuilder::generateText(QJsonValue jsonVal,bool isTopLevel = true)
 {
+    this->isTopLevel = isTopLevel;
     text.append("<pre>");
-    QJsonArray top_level_sexprs_array = doc.array();
-    loopArray(top_level_sexprs_array);
+    if(isTopLevel){
+        pasteTopLevel(jsonVal.toArray());
+    }else{
+        genList(jsonVal.toObject(),true);
+    }
     text.append("</pre>");
     return text;
 }
 
-void DiffViewerTextBuilder::pasteLexem(QJsonObject &lex)
+int DiffViewerTextBuilder::getTrueLine(int cur_line)
+{
+    return cur_line - diff_line;
+}
+
+void DiffViewerTextBuilder::pasteTopLevel(const QJsonArray &array)
+{
+    loopArray(array);
+}
+
+
+void DiffViewerTextBuilder::pasteLexem(const QJsonObject &lex)
 {
     if(lex["diff-st"].toString() == "deleted"){
         text.append("<font style=\"background-color:#FF9CA1;\">");
@@ -57,37 +72,39 @@ void DiffViewerTextBuilder::pasteSpacesBeforeParent(int line, int column)
     }
 }
 
-void DiffViewerTextBuilder::genLexem(QJsonObject &lex)
+void DiffViewerTextBuilder::genLexem(const QJsonObject &lex)
 {
     QJsonArray lexem_pos = lex["lexem-coord"].toArray();
-    if(lexem_pos[0].toInt() == cur_line){
+    if(getTrueLine(lexem_pos[0].toInt()) == cur_line){
         pasteSpaces(lexem_pos[1].toInt() - cur_column);
     } else {
-        int line_delta = lexem_pos[0].toInt() - cur_line;
-        text.append(QString('\n', line_delta));
+        int line_delta = getTrueLine(lexem_pos[0].toInt()) - cur_line;
+        text.append(QString(line_delta, '\n'));
         pasteSpaces(lexem_pos[1].toInt());
-        cur_line = lexem_pos[0].toInt();    
+        cur_line = getTrueLine(lexem_pos[0].toInt());
     }
     pasteLexem(lex);
     cur_column = lexem_pos[1].toInt() + lex["string"].toString().size();
 }
 
-void DiffViewerTextBuilder::genList(QJsonObject &listObj)
+void DiffViewerTextBuilder::genList(const QJsonObject &listObj, bool isFirstCall = false)
 {
     QJsonObject parent_info = listObj["par-info"].toObject();
     QJsonArray lparenCoord = parent_info["lparenCoord"].toArray();
+    if(isFirstCall && !isTopLevel){
+        diff_line = lparenCoord[0].toInt();
+    }
     QJsonArray rparenCoord = parent_info["rparenCoord"].toArray();
-
     auto main_part = [&](){
         pasteParent('(');
         QJsonArray array = listObj["elems"].toArray();
         loopArray(array);
-        pasteSpacesBeforeParent(rparenCoord[0].toInt(),rparenCoord[1].toInt());
+        pasteSpacesBeforeParent(getTrueLine(rparenCoord[0].toInt()),rparenCoord[1].toInt());
         pasteParent(')');
     };
 
 
-    pasteSpacesBeforeParent(lparenCoord[0].toInt(),lparenCoord[1].toInt());
+    pasteSpacesBeforeParent(getTrueLine(lparenCoord[0].toInt()),lparenCoord[1].toInt());
     if(listObj["diff-st"].toString() == "deleted"){
         text.append("<font style=\"background-color:#FF9CA1;\">");
         main_part();
@@ -105,7 +122,7 @@ void DiffViewerTextBuilder::genList(QJsonObject &listObj)
     }
 }
 
-void DiffViewerTextBuilder::loopArray(QJsonArray &array)
+void DiffViewerTextBuilder::loopArray(const QJsonArray &array)
 {
     for(int elem_index = 0; elem_index < array.size(); ++elem_index){
         QJsonObject sexprObject = array[elem_index].toObject();

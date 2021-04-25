@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui testlib
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,7 +14,9 @@ SOURCES += \
     diffviewertextbuilder.cpp \
     linenumberarea.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    stat.cpp \
+    statjsonreader.cpp
 
 HEADERS += \
     ast-nodes.h \
@@ -22,7 +24,9 @@ HEADERS += \
     diffviewertext.h \
     diffviewertextbuilder.h \
     linenumberarea.h \
-    mainwindow.h
+    mainwindow.h \
+    stat.h \
+    statjsonreader.h
 
 FORMS += \
     mainwindow.ui

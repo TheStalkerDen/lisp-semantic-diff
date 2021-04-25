@@ -4,6 +4,8 @@
 #include "diffviewertext.h"
 
 #include <QMainWindow>
+#include <QTreeWidgetItem>
+#include "stat.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,12 +21,23 @@ public:
 
     DiffViewerText doc1;
     DiffViewerText doc2;
+    Stat stats;
+    QMap<QString, QJsonObject> nameToObj1;
+    QMap<QString, QJsonObject> nameToObj2;
 
 private slots:
     void on_actionloadFiles_triggered();
 
 
+    void on_treeWidget_itemClicked(QTreeWidgetItem *item, int column);
+
 private:
     Ui::MainWindow *ui;
+    void fillStatsTree();
+    void analyzeAST(QJsonDocument& doc, int num);
+    QJsonDocument getJsonDocument(QString pathname);
+    QJsonDocument file1;
+    QJsonDocument file2;
+
 };
 #endif // MAINWINDOW_H
