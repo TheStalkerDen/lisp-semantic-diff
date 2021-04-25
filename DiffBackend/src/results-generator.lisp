@@ -34,6 +34,8 @@
   (with-ht
     (add-to-ht "type" "list")
     (add-to-ht "diff-st" (diff-status obj))
+    (add-to-ht "props" (alexandria:alist-hash-table
+                        `((:is-defun . ,(get-lexem-name (function-name obj))))))
     (add-to-ht "par-info" (alexandria:alist-hash-table
                            (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (list*
