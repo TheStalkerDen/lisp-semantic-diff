@@ -5,6 +5,8 @@
 
 (in-package :diff-backend/tests/lexer)
 
+(declaim (optimize (debug 3)))
+
 (def-lexer-test parent.1
     "()"
   (list
@@ -77,6 +79,69 @@
    (make-lexem "a" 1 2 :symbol)
    (make-lexem "'" 1 4 :quote)
    (make-lexem "1" 1 5 :integer)))
+
+(def-lexer-test string.1
+  "\"\""
+  (list
+   (make-lexem "\"\"" 1 1 :string)))
+
+(def-lexer-test string.2
+  "\"ab 23 ff3\""
+  (list
+   (make-lexem "\"ab 23 ff3\"" 1 1 :string)))
+
+(def-lexer-test string.3
+  "\"ab 23 \\\" \\\" ff3\""
+  (list
+   (make-lexem "\"ab 23 \\\" \\\" ff3\"" 1 1 :string)))
+
+(def-lexer-test string.4
+"\"
+ab
+\""
+  (list
+   (make-lexem
+"\"
+ab
+\"" 1 1 :string)))
+
+(def-lexer-test comment.1
+  ";"
+  nil
+  :exp-comments `((1 . (:comment ";"
+                        :column 1))))
+
+(def-lexer-test comment.2
+  ";;;comment"
+  nil
+  :exp-comments `((1 . (:comment ";;;comment"
+                        :column 1))))
+
+(def-lexer-test comment.3
+  "    ;comment 1"
+  nil
+  :exp-comments `((1 . (:comment ";comment 1"
+                        :column 5))))
+
+(def-lexer-test comment.4
+  "(fun   ;comment 1"
+  (list
+   (make-lexem "(" 1 1 :left-parent)
+   (make-lexem "fun" 1 2 :symbol))
+  :exp-comments `((1 . (:comment ";comment 1"
+                        :column 8))))
+
+(def-lexer-test comment.5
+  "(fun   ;comment 1
+
+;comment 2 ; aha"
+  (list
+   (make-lexem "(" 1 1 :left-parent)
+   (make-lexem "fun" 1 2 :symbol))
+  :exp-comments `((1 . (:comment ";comment 1"
+                        :column 8))
+                  (3 . (:comment ";comment 2 ; aha"
+                        :column 1))))
 
 (def-lexer-test mixed.1
     "(defun a () 1)"
