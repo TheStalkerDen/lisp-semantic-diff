@@ -13,8 +13,8 @@
                 :init-stats))
 (in-package :diff-backend)
 
-(defvar *comment-table-1*)
-(defvar *comment-table-2*)
+(defparameter *comment-table-1* nil)
+(defparameter *comment-table-2* nil)
 
 (defun main ()
   (let ((cmd-args (uiop:command-line-arguments)))
@@ -24,15 +24,19 @@
 
 (defun differ-v01 (file1 file2)
   (init-stats)
-  (multiple-value-bind (res1 res2)
-      (compare-two-files file1 file2)
-    (generate-json-outputs res1 res2)))
+  (let (*comment-table-1*
+        *comment-table-2*)
+    (multiple-value-bind (res1 res2)
+        (compare-two-files file1 file2)
+      (generate-json-outputs res1 res2))))
 
 (defun str-differ-v01 (str1 str2)
   (init-stats)
-  (multiple-value-bind (res1 res2)
-      (compare-two-str str1 str2)
-    (generate-json-outputs res1 res2)))
+  (let (*comment-table-1*
+        *comment-table-2*)
+    (multiple-value-bind (res1 res2)
+        (compare-two-str str1 str2)
+      (generate-json-outputs res1 res2))))
 
 (defun generate-json-outputs (res1 res2)
   (when *comment-table-1*
@@ -55,15 +59,17 @@
 
 (defun simple-differ-str (str1 str2 &optional (out1 t ) (out2 t) (out3 t))
   (init-stats)
-  (multiple-value-bind (res1 res2)
-      (compare-two-str str1 str2)
-    (when *comment-table-1*
-      (get-json-comments *comment-table-1* t))
-    (when *comment-table-2*
-      (get-json-comments *comment-table-2* t))
-    (get-json-res res1 out1)
-    (get-json-res res2 out2)
-    (get-stats-res out3)))
+  (let (*comment-table-1*
+        *comment-table-2*)
+    (multiple-value-bind (res1 res2)
+        (compare-two-str str1 str2)
+      (when *comment-table-1*
+        (get-json-comments *comment-table-1* t))
+      (when *comment-table-2*
+        (get-json-comments *comment-table-2* t))
+      (get-json-res res1 out1)
+      (get-json-res res2 out2)
+      (get-stats-res out3))))
 
 (defun compare-two-files (filepath1 filepath2)
   (let ((str1 (read-file-into-string filepath1))
