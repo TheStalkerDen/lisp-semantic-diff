@@ -8,7 +8,7 @@
 
 (in-package :diff-backend/lexer)
 
-(declaim (optimize safety))
+(declaim (optimize safety (debug 3)))
 
 (defclass* lexem ()
   ((line
@@ -108,7 +108,10 @@
        (setf cur-lexem-column column)
        (setf cur-lexem-line line)
        (cond
-         ((digit? cur-char) (go INTEGER))
+         ((or (ch= cur-char #\-)
+              (ch= cur-char #\+)
+              (digit? cur-char))
+          (go INTEGER))
          ((or (alpha? cur-char)
               (is-special-symbol? cur-char))
           (go SYMBOL))
