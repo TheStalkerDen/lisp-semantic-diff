@@ -32,7 +32,7 @@
 
 (defun s-expr-rule (lex)
   (ecase (lexem-type lex)
-    ((:integer :symbol)
+    ((:integer :symbol :string)
      `(:atom () ,lex))
     ((:left-parent)
      (list-rule lex))
