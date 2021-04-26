@@ -6,7 +6,9 @@
         :diff-backend/statistics)
   (:export #:get-json-res
            #:get-stats-res
-           #:get-json-comments))
+           #:get-json-comments
+           #:get-lexer-errors-msgs-json
+           #:get-lexems-json))
 
 (in-package :diff-backend/results-generator)
 
@@ -34,6 +36,16 @@
    (with-ht
      (loop :for line-num :being :the :hash-key :in comment-table :using (:hash-value val)
            :do (setf (gethash line-num ht) (alexandria:plist-hash-table val))))
+   stream))
+
+(defun get-lexer-errors-msgs-json (lexer-errors-msgs stream)
+  (encode-json
+   lexer-errors-msgs
+   stream))
+
+(defun get-lexems-json (lexems stream)
+  (encode-json
+   lexems
    stream))
 
 (defgeneric gener-res-object (obj))
