@@ -24,11 +24,10 @@
                           &key
                             exp-comments
                             exp-lex-errors)
-  (declare (ignore exp-lex-errors))
   `(deftest ,name
      (multiple-value-bind (res-lexems res-comments res-lex-errors)
          (lexer ,str)
-       (declare (ignore res-lex-errors))
+       (declare (optimize (debug 3)))
        (assert (= (length res-lexems) (length ,lexems-list)))
        (loop
          :for res-lexem :in res-lexems
@@ -39,9 +38,13 @@
                              res-lexem
                              exp-lemem))))
        (when (or ,exp-comments res-comments)
-         (deep-equal (sort (alexandria:hash-table-alist res-comments)
-                           #'< :key #'first)
-                     ,exp-comments)))))
+         (unless (deep-equal (sort (alexandria:hash-table-alist res-comments)
+                                 #'< :key #'first)
+                           ,exp-comments)
+           (fail "Comments not equal!")))
+       (when (or ,exp-lex-errors res-lex-errors)
+         (unless (deep-equal ,exp-lex-errors res-lex-errors)
+           (fail "Errors not equal"))))))
 
 (defmacro def-parser-test (name str parser-exp)
   `(deftest ,name
