@@ -7,7 +7,11 @@
 (in-package :diff-backend/tests/test-utils)
 
 (defun deep-equal (obj1 obj2)
-  (if (equal (type-of obj1) (type-of obj2))
+  (if (or (and (integerp obj1)
+               (integerp obj2))
+          (and (stringp obj1)
+               (stringp obj2))
+          (equal (type-of obj1) (type-of obj2)))
       (if (typecase obj1 
             (standard-object
              (loop :for slot :in (closer-mop:class-slots (class-of obj1))
