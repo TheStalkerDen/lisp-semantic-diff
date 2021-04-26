@@ -115,6 +115,40 @@ ab
 ab
 \"" 1 1 :string)))
 
+(def-lexer-test string.error.1
+  "\" AA"
+  (list
+   (make-lexem "\" AA" 1 1 :error-lexem :id 1))
+  :exp-lex-errors
+  (list
+   (make-instance 'lexem-error
+                  :error-text "At (1:1) error lexem"
+                  :error-lex-id 1)))
+
+(def-lexer-test error-lexems.1
+  ":11 a"
+  (list
+   (make-lexem ":11" 1 1 :error-lexem :id 1)
+   (make-lexem "a" 1 5 :symbol))
+  :exp-lex-errors
+  (list
+   (make-instance 'lexem-error
+                  :error-text "At (1:1) error lexem"
+                  :error-lex-id 1)))
+
+(def-lexer-test error-lexems.2
+  "(10:11)"
+  (list
+   (make-lexem "(" 1 1 :left-parent)
+   (make-lexem "10" 1 2 :integer)
+   (make-lexem ":11" 1 4 :error-lexem :id 3)
+   (make-lexem ")" 1 7 :right-parent))
+  :exp-lex-errors
+  (list
+   (make-instance 'lexem-error
+                  :error-text "At (1:4) error lexem"
+                  :error-lex-id 3)))
+
 (def-lexer-test comment.1
   ";"
   nil
