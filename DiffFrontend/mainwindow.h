@@ -3,13 +3,21 @@
 
 #include "diffviewertext.h"
 
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QMainWindow>
+#include <QMap>
 #include <QTreeWidgetItem>
 #include "stat.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+enum class ViewerMode {NormalMode, ErrorsMode};
+enum class ErrorsModeTypes {LexicalErrors, SyntaxErrors};
+
+using ErrorsMsgsMap = QMap<int,QJsonObject>;
 
 class MainWindow : public QMainWindow
 {
@@ -35,11 +43,23 @@ private:
     Ui::MainWindow *ui;
     void fillStatsTree();
     void analyzeSynTree(QJsonDocument& doc, int num);
+    void cleanOldJsonFiles();
+    ErrorsMsgsMap convertJsonArrayToErrorsMsgsMap(QJsonArray array);
     QJsonDocument getJsonDocument(QString pathname);
+
     QJsonDocument synTreeJson1;
     QJsonDocument synTreeJson2;
     QJsonObject commentsJsonObj1;
     QJsonObject commentsJsonObj2;
+    //for errors
+    QJsonArray lexemsArrayJson1;
+    QJsonArray lexemsArrayJson2;
+    ErrorsMsgsMap errorsMsgs1;
+    ErrorsMsgsMap errorsMsgs2;
+
+    ViewerMode viewerMode = ViewerMode::NormalMode;
+    ErrorsModeTypes file1ErrorsMode;
+    ErrorsModeTypes file2ErrorsMode;
 
 };
 #endif // MAINWINDOW_H

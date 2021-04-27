@@ -13,6 +13,7 @@ public:
     DiffViewerTextBuilder();
 
     QString generateText(QJsonValue, QJsonObject, bool);
+    QString generateTextFromLexemsArray(QJsonArray, QJsonObject);
 
 private:
     QString text;

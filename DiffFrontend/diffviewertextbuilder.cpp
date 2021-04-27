@@ -22,6 +22,30 @@ QString DiffViewerTextBuilder::generateText(QJsonValue jsonVal, QJsonObject comm
     return text;
 }
 
+QString DiffViewerTextBuilder::generateTextFromLexemsArray(QJsonArray lexems, QJsonObject comments)
+{
+    this->comments = comments;
+    text.append("<pre>");
+    for(int i = 0; i < lexems.size(); i++){
+        QJsonObject lex = lexems[i].toObject();
+        if(getTrueLine(lex["line"].toInt()) == cur_line){
+            pasteSpaces(lex["column"].toInt() - cur_column);
+        } else {
+            pasteNewLinesAndComments(getTrueLine(lex["line"].toInt()));
+            pasteSpaces(lex["column"].toInt() - cur_column);
+            cur_line = getTrueLine(lex["line"].toInt());
+        }
+        pasteLexem(lex);
+        if(lex["type"] == "string"){
+            int newlines = lex["string"].toString().count('\n');
+            cur_line += newlines;
+        }
+        cur_column = lex["column"].toInt() + lex["string"].toString().size();
+    }
+    text.append("</pre>");
+    return text;
+}
+
 int DiffViewerTextBuilder::getTrueLine(int cur_line)
 {
     return cur_line - diff_line;

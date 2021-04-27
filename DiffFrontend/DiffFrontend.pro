@@ -19,7 +19,6 @@ SOURCES += \
     statjsonreader.cpp
 
 HEADERS += \
-    ast-nodes.h \
     diffviewer.h \
     diffviewertext.h \
     diffviewertextbuilder.h \

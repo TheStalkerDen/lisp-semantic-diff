@@ -10,7 +10,8 @@ class DiffViewerText : public QObject
 public:
     explicit DiffViewerText(QObject *parent = nullptr);
     QString getText();
-    void setTextDescriptionFromJson(QJsonValue obj, QJsonObject comments, bool isTopLevel = true);
+    void generateHTMLTextFromJson(QJsonValue obj, QJsonObject comments, bool isTopLevel = true);
+    void generateHTMLTextFromLexemsArrayJson(QJsonArray lexems, QJsonObject comments);
 private:
 
     QJsonDocument loadedJson;
