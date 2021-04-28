@@ -31,6 +31,13 @@
                          (format t "Length ~A : ~A~%" (length obj1) obj1)
                          (format t "Length ~A : ~A~%" (length obj2) obj2)
                          nil)))
+            (vector (if (= (length obj1) (length obj2))
+                       (every #'deep-equal obj1 obj2)
+                       (progn
+                         (format t "Length not equal!~%")
+                         (format t "Length ~A : ~A~%" (length obj1) obj1)
+                         (format t "Length ~A : ~A~%" (length obj2) obj2)
+                         nil)))
             (t (unless (equalp obj1 obj2)
                  (print obj1)
                  (print obj2)
