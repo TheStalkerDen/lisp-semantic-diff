@@ -36,6 +36,10 @@
 (defun is-atom-s-expr? (s-expr)
   (eq (first s-expr) :atom))
 
+(defun get-form*-vector (form*-list)
+  (when form*-list
+    (map 'vector #'match-s-expr form*-list)))
+
 (defun make-lexem-wrapper (lexem)
   (make-instance 'lexem-wrapper-node :lexem-info lexem))
 
@@ -54,9 +58,7 @@
                 :func-name (make-lexem-wrapper (third name))
                 :parenthesis-info par-info
                 :parameters-list (gen-list-node parms)
-                :body-forms (mapcar (lambda (form)
-                                      (match-s-expr form))
-                                    forms))))
+                :body-forms (get-form*-vector forms))))
           (add-to-stats (lexem-string (third name))
                         res-obj
                         :stat-name :defuns
@@ -67,10 +69,7 @@
   (when (eq (first list-element) :list)
     (make-instance 'list-node
                    :parenthesis-info (second list-element)
-                   :elements (mapcar (lambda (el)
-                                       (match-s-expr el))
-                                     (rest
-                                      (rest list-element))))))
+                   :elements (get-form*-vector (rest (rest list-element))))))
 
 (defun match-function-call (list-element)
   (destructuring-bind (type par-info func-form &rest args)
@@ -79,6 +78,4 @@
     (make-instance 'function-call-node
                    :func-lexem (match-s-expr func-form)
                    :parenthesis-info par-info
-                   :func-arg-forms (mapcar (lambda (arg)
-                                             (match-s-expr arg))
-                                           args))))
+                   :func-arg-forms (get-form*-vector args))))

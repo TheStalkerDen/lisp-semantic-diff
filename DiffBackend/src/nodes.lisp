@@ -35,7 +35,7 @@
 
 (defgeneric calculate-no-whitespace-length (obj)
   (:method (obj)
-    (print "No no")))
+    (print "Can't calculate no-whitespace-length for obj ~S" obj)))
 
 (defmethod calculate-no-whitespace-length :around ((obj no-whitespace-length-mixin))
   (if (slot-boundp obj 'no-whitespace-length)
@@ -47,6 +47,7 @@
     (unless (slot-boundp obj 'no-whitespace-length)
       (setf no-whitespace-length (calculate-no-whitespace-length obj)))))
 
+;;;LEXEM-WRAPPER-NODE
 (define-node lexem-wrapper-node ()
   ((lexem-info :accessor lexem-info
                :initarg :lexem-info)))
@@ -65,6 +66,7 @@
       (print-unreadable-object (obj stream)
         (format stream "~S" (lexem-string lexem-info)))))
 
+;;;DEFUN-NODE
 (define-node defun-node (parenthesis-mixin keyword-mixin)
   ((function-name :accessor function-name
                   :initarg :func-name)
@@ -83,6 +85,7 @@
          (calculate-no-whitespace-length keyword-lexem)
          2)))
 
+;;;FUNCTION-CALL-NODE
 (define-node function-call-node (parenthesis-mixin)
   ((func-lexem :accessor func-lexem
                :initarg :func-lexem)
@@ -100,16 +103,19 @@
     (print-unreadable-object (obj stream)
       (format stream "Funcall ~S" func-lexem))))
 
+;;;LIST-NODE
 (define-node list-node (parenthesis-mixin)
   ((elements :accessor elements
              :initarg :elements)))
 
 (defmethod calculate-no-whitespace-length ((obj list-node))
   (with-slots (elements) obj
-    (+ 2 (loop :for el :in elements
-         :sum (calculate-no-whitespace-length el)))))
+    (+ 2 (calculate-no-whitespace-length elements))))
 
 (defmethod calculate-no-whitespace-length ((obj list))
   (loop :for el :in obj
-       :sum (calculate-no-whitespace-length el)))
+        :sum (calculate-no-whitespace-length el)))
 
+(defmethod calculate-no-whitespace-length ((obj vector))
+  (loop :for el :across obj
+       :sum (calculate-no-whitespace-length el)))
