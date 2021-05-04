@@ -55,6 +55,10 @@
 
 (defgeneric conv-for-cmp-test (obj))
 
+(defmethod conv-for-cmp-test ((obj vector))
+  (loop :for el :across obj
+        :collect (conv-for-cmp-test el)))
+
 (defmethod conv-for-cmp-test ((obj list))
   (loop :for el :in obj
         :collect (conv-for-cmp-test el)))

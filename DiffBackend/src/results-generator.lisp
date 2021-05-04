@@ -64,10 +64,11 @@
                         (gener-res-object (parameters-list obj))
                         (gener-res-object (body-forms obj))))))
 
+(defmethod gener-res-object ((obj vector))
+  (map 'list #'gener-res-object obj))
+
 (defmethod gener-res-object ((obj list))
-  (mapcar (lambda (el)
-            (gener-res-object el))
-          obj))
+  (map 'list #'gener-res-object obj))
 
 (defmethod gener-res-object ((obj function-call-node))
   (with-ht
