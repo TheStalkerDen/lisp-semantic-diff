@@ -13,10 +13,17 @@
 
 (defparameter *current-file-ver* 1)
 
+(defvar *current-id*)
+
 ;;; ast = abstract syntax tree
 (defun abstract-sem-tree-gen (ast &key (curr-file 1))
-  (let ((*current-file-ver* curr-file))
+  (let ((*current-file-ver* curr-file)
+        (*current-id* 0))
     (top-level-rule ast)))
+
+(defun get-id ()
+  (prog1 *current-id*
+    (incf *current-id*)))
 
 (defun top-level-rule (ast)
   (destructuring-bind (term-type annotations &rest elements)
@@ -41,7 +48,9 @@
     (map 'vector #'match-s-expr form*-list)))
 
 (defun make-lexem-wrapper (lexem)
-  (make-instance 'lexem-wrapper-node :lexem-info lexem))
+  (make-instance 'lexem-wrapper-node
+                 :lexem-info lexem
+                 :id (get-id)))
 
 (defun match-defun (list-element)
   (let ((thrd (third list-element)))
@@ -51,14 +60,16 @@
       (destructuring-bind (type par-info keyword name parms &rest forms)
           list-element
         (declare (ignore type))
-        (let ((res-obj
+        (let* ((node-id (get-id))
+               (res-obj
                (make-instance
                 'defun-node
                 :keyword-lexem (make-lexem-wrapper (third keyword))
                 :func-name (make-lexem-wrapper (third name))
                 :parenthesis-info par-info
                 :parameters-list (gen-list-node parms)
-                :body-forms (get-form*-vector forms))))
+                :body-forms (get-form*-vector forms)
+                :id node-id)))
           (add-to-stats (lexem-string (third name))
                         res-obj
                         :stat-name :defuns
@@ -67,15 +78,19 @@
 
 (defun gen-list-node (list-element)
   (when (eq (first list-element) :list)
-    (make-instance 'list-node
-                   :parenthesis-info (second list-element)
-                   :elements (get-form*-vector (rest (rest list-element))))))
+    (let ((node-id (get-id)))
+      (make-instance 'list-node
+                     :parenthesis-info (second list-element)
+                     :elements (get-form*-vector (rest (rest list-element)))
+                     :id node-id))))
 
 (defun match-function-call (list-element)
   (destructuring-bind (type par-info func-form &rest args)
       list-element
     (declare (ignore type))
-    (make-instance 'function-call-node
-                   :func-lexem (match-s-expr func-form)
-                   :parenthesis-info par-info
-                   :func-arg-forms (get-form*-vector args))))
+    (let ((node-id (get-id)))
+      (make-instance 'function-call-node
+                     :func-lexem (match-s-expr func-form)
+                     :parenthesis-info par-info
+                     :func-arg-forms (get-form*-vector args)
+                     :id node-id))))

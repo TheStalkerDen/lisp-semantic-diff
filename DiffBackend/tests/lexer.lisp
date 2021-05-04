@@ -118,7 +118,7 @@ ab
 (def-lexer-test string.error.1
   "\" AA"
   (list
-   (make-lexem "\" AA" 1 1 :error-lexem :id 1))
+   (make-lexem "\" AA" 1 1 :error-lexem :lex-id 1))
   :exp-lex-errors
   (list
    (make-instance 'lexem-error
@@ -128,7 +128,7 @@ ab
 (def-lexer-test error-lexems.1
   ":11 a"
   (list
-   (make-lexem ":11" 1 1 :error-lexem :id 1)
+   (make-lexem ":11" 1 1 :error-lexem :lex-id 1)
    (make-lexem "a" 1 5 :symbol))
   :exp-lex-errors
   (list
@@ -141,7 +141,7 @@ ab
   (list
    (make-lexem "(" 1 1 :left-parent)
    (make-lexem "10" 1 2 :integer)
-   (make-lexem ":11" 1 4 :error-lexem :id 3)
+   (make-lexem ":11" 1 4 :error-lexem :lex-id 3)
    (make-lexem ")" 1 7 :right-parent))
   :exp-lex-errors
   (list

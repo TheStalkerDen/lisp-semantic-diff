@@ -66,13 +66,13 @@
                (= id2 -1)
                (= id1 id2))))))
 
-(defun make-lexem (string line column type &key (id -1))
+(defun make-lexem (string line column type &key (lex-id -1))
   (make-instance 'lexem
                  :string string
                  :line line
                  :column column
                  :type type
-                 :id id))
+                 :id lex-id))
 
 (defun is-lexem-symbol?= (lexem symbol-string)
   (when (eq (lexem-type lexem) :symbol)
@@ -159,7 +159,7 @@
                          cur-lexem-line
                          cur-lexem-column
                          :integer
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (setf lexem-l nil)
        (go COMMON)
@@ -176,7 +176,7 @@
                          line
                          cur-lexem-column
                          :symbol
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (setf lexem-l nil)
        (go COMMON)
@@ -185,7 +185,7 @@
                          line
                          cur-lexem-column
                          :left-parent
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (setf cur-char (read-char stream nil))
        (incf column)
@@ -195,7 +195,7 @@
                          line
                          cur-lexem-column
                          :right-parent
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (setf cur-char (read-char stream nil))
        (incf column)
@@ -213,7 +213,7 @@
                          line
                          cur-lexem-column
                          :quote
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (incf column)
        (setf cur-char (read-char stream nil))
@@ -243,7 +243,7 @@
                          cur-lexem-line
                          cur-lexem-column
                          :string
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (setf lexem-l nil)
        (setf cur-char (read-char stream nil))
@@ -282,7 +282,7 @@
                          cur-lexem-line
                          cur-lexem-column
                          :error-lexem
-                         :id (incf *cur-id*))
+                         :lex-id (incf *cur-id*))
              lexems)
        (setf lexem-l nil)
        (push (make-instance
