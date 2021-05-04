@@ -11,7 +11,9 @@
                        (&rest slot-specs)
                        &optional class-option)
   `(progn
-     (defclass* ,name (,@(nconc superclasses '(diff-status-mixin no-whitespace-length-mixin)))
+     (defclass* ,name (,@(nconc superclasses '(diff-status-mixin
+                                               id-mixin
+                                               no-whitespace-length-mixin)))
          ,slot-specs
        ,(when class-option
           class-option))))
@@ -28,6 +30,11 @@
 (defclass* keyword-mixin ()
   ((keyword-lexem :accessor keyword-lexem
                   :initarg :keyword-lexem)))
+
+(defclass* id-mixin ()
+    ((id :accessor id
+         :initarg :id
+         :initform -1)))
 
 (defclass* no-whitespace-length-mixin ()
   ((no-whitespace-length :accessor no-whitespace-length
