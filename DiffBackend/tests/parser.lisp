@@ -1,6 +1,7 @@
 (uiop:define-package :diff-backend/tests/parser
     (:use :cl
-          :diff-backend/lexer
+     :diff-backend/lexer
+          :diff-backend/parser
           :diff-backend/tests/test-engines))
 
 (in-package :diff-backend/tests/parser)
@@ -73,3 +74,40 @@
      (:atom
       nil
       ,(make-lexem "a" 1 2 :symbol)))))
+
+
+(def-parser-test error.1
+  "("
+  nil
+  :exp-parser-error
+  (make-instance
+   'parser-error-info
+   :error-text "At (1:1) unclosed parenthesis"
+   :error-lex-id 1 ))
+
+(def-parser-test error.2
+  ")"
+  nil
+  :exp-parser-error
+  (make-instance
+   'parser-error-info
+   :error-text "At (1:1) unmatched close parenthesis"
+   :error-lex-id 1))
+
+(def-parser-test error.3
+  "'"
+  nil
+  :exp-parser-error
+  (make-instance
+   'parser-error-info
+   :error-text "At (1:1) no s-expr after '"
+   :error-lex-id 1))
+
+(def-parser-test error.4
+  "(')"
+  nil
+  :exp-parser-error
+  (make-instance
+   'parser-error-info
+   :error-text "At (1:2) no s-expr after '"
+   :error-lex-id 2))
