@@ -20,6 +20,8 @@
 
 (declaim (optimize (debug 3)))
 
+(setf rove:*debug-on-error* t)
+
 (defmacro def-lexer-test (name str lexems-list
                           &key
                             exp-comments
@@ -46,9 +48,11 @@
          (unless (deep-equal ,exp-lex-errors res-lex-errors)
            (fail "Errors not equal"))))))
 
-(defmacro def-parser-test (name str parser-exp)
+(defmacro def-parser-test (name str parser-exp &key exp-parser-error)
   `(deftest ,name
-       (let ((parser-res (parser (lexer ,str))))
+     (multiple-value-bind (parser-res parser-error)
+         (parser (lexer ,str))
+       (when (or ,parser-exp parser-res)
          (unless
              (tree-equal
               parser-res
@@ -58,7 +62,10 @@
                         (lexem (when (typep y 'lexem)
                                  (equal-lexem? x y)))
                         (t (eq x y)))))
-           (fail "Parser-test failed")))))
+           (fail "Parser-test failed")))
+       (when (or ,exp-parser-error parser-error)
+         (unless (deep-equal ,exp-parser-error parser-error)
+           (fail "Errors not equal"))))))
 
 (defmacro def-ast-test (name str obj-tree)
   `(deftest ,name
