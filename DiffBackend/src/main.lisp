@@ -17,14 +17,14 @@
 (defparameter *comment-table-2* nil)
 (defparameter *lex-errors-msgs-1* nil)
 (defparameter *lex-errors-msgs-2* nil)
+(defparameter *parser-error-msg-1* nil)
+(defparameter *parser-error-msg-2* nil)
 (defparameter *lexems-1* nil)
 (defparameter *lexems-2* nil)
 
 (defun main ()
   (let ((cmd-args (uiop:command-line-arguments)))
-    (print cmd-args)
     (differ-v01 (first cmd-args) (second cmd-args))))
-
 
 (defun differ-v01 (file1 file2)
   (init-stats)
@@ -32,6 +32,8 @@
         *comment-table-2*
         *lex-errors-msgs-1*
         *lex-errors-msgs-2*
+        *parser-error-msg-1*
+        *parser-error-msg-2*
         *lexems-1*
         *lexems-2*)
     (multiple-value-bind (res1 res2)
@@ -44,6 +46,8 @@
         *comment-table-2*
         *lex-errors-msgs-1*
         *lex-errors-msgs-2*
+        *parser-error-msg-1*
+        *parser-error-msg-2*
         *lexems-1*
         *lexems-2*)
     (multiple-value-bind (res1 res2)
@@ -59,20 +63,30 @@
     (with-open-file (stream "comments2.json" :direction :output
                                              :if-exists :supersede)
       (get-json-comments *comment-table-2* stream)))
-  (when *lex-errors-msgs-1*
+  (when *lexems-1*
     (with-open-file (stream "lexems1.json" :direction :output
-                                          :if-exists :supersede)
+                                           :if-exists :supersede)
       (get-lexems-json *lexems-1* stream))
-    (with-open-file (stream "lexer-errors-msgs1.json" :direction :output
-                                                     :if-exists :supersede)
-      (get-lexer-errors-msgs-json *lex-errors-msgs-1* stream)))
-  (when *lex-errors-msgs-2*
+    (when *lex-errors-msgs-1*
+      (with-open-file (stream "lexer-errors-msgs1.json" :direction :output
+                                                        :if-exists :supersede)
+        (get-lexer-errors-msgs-json *lex-errors-msgs-1* stream)))
+    (when *parser-error-msg-1*
+      (with-open-file (stream "parser-error-msg1.json" :direction :output
+                                                        :if-exists :supersede)
+        (get-parser-error-msg-json *parser-error-msg-1* stream))) )
+  (when *lexems-2*
     (with-open-file (stream "lexems2.json" :direction :output
-                                          :if-exists :supersede)
+                                           :if-exists :supersede)
       (get-lexems-json *lexems-2* stream))
-    (with-open-file (stream "lexer-errors-msgs2.json" :direction :output
-                                                     :if-exists :supersede)
-      (get-lexer-errors-msgs-json *lex-errors-msgs-2* stream)))
+    (when *lex-errors-msgs-2*
+      (with-open-file (stream "lexer-errors-msgs2.json" :direction :output
+                                                        :if-exists :supersede)
+        (get-lexer-errors-msgs-json *lex-errors-msgs-2* stream)))
+    (when *parser-error-msg-2*
+      (with-open-file (stream "parser-error-msg2.json" :direction :output
+                                                        :if-exists :supersede)
+        (get-parser-error-msg-json *parser-error-msg-2* stream))))
   (when (and res1 res2)
     (with-open-file (stream "res1.json" :direction :output
                                         :if-exists :supersede)
@@ -90,6 +104,8 @@
         *comment-table-2*
         *lex-errors-msgs-1*
         *lex-errors-msgs-2*
+        *parser-error-msg-1*
+        *parser-error-msg-2*
         *lexems-1*
         *lexems-2*)
     (multiple-value-bind (res1 res2)
@@ -108,6 +124,16 @@
         (format t "~%Lex-errors-msgs-1:~%")
         (get-lexer-errors-msgs-json *lex-errors-msgs-2* t)
         (format t "~%Lexems-1:~%")
+        (get-lexems-json *lexems-2* t))
+      (when *parser-error-msg-1*
+        (format t "~%Parser-error-msg-1:~%")
+        (get-parser-error-msg-json *parser-error-msg-1* t)
+        (format t "~%Lexems-1:~%")
+        (get-lexems-json *lexems-1* t))
+      (when *parser-error-msg-2*
+        (format t "~%Parser-error-msg-2:~%")
+        (get-parser-error-msg-json *parser-error-msg-2* t)
+        (format t "~%Lexems-2:~%")
         (get-lexems-json *lexems-2* t))
       (when (and res1 res2)
         (format t "~%Res1:~%")
@@ -146,5 +172,16 @@
                (setf *lex-errors-msgs-2* lex-errors)
                (setf *lexems-2* res-lexems))
               (t (error "Error value of cur-file")))
-         (return-from get-abstract-sem-tree-from-string nil))
-    (abstract-sem-tree-gen (parser res-lexems) :curr-file cur-file)))
+        (return-from get-abstract-sem-tree-from-string nil))
+    (multiple-value-bind (res-syn-tree parser-error)
+        (parser res-lexems)
+      (when parser-error
+        (cond ((= cur-file 1)
+               (setf *parser-error-msg-1* parser-error)
+               (setf *lexems-1* res-lexems))
+              ((= cur-file 2)
+               (setf *parser-error-msg-2* parser-error)
+               (setf *lexems-2* res-lexems))
+              (t (error "Error value of cur-file")))
+        (return-from get-abstract-sem-tree-from-string nil))
+      (abstract-sem-tree-gen res-syn-tree :curr-file cur-file))))
