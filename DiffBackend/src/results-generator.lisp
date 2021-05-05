@@ -8,6 +8,7 @@
            #:get-stats-res
            #:get-json-comments
            #:get-lexer-errors-msgs-json
+           #:get-parser-error-msg-json
            #:get-lexems-json))
 
 (in-package :diff-backend/results-generator)
@@ -41,6 +42,11 @@
 (defun get-lexer-errors-msgs-json (lexer-errors-msgs stream)
   (encode-json
    lexer-errors-msgs
+   stream))
+
+(defun get-parser-error-msg-json (parser-error-msg stream)
+  (encode-json
+   parser-error-msg
    stream))
 
 (defun get-lexems-json (lexems stream)
