@@ -1,6 +1,8 @@
 #ifndef DIFFVIEWERTEXTBUILDER_H
 #define DIFFVIEWERTEXTBUILDER_H
 
+#include "global.h"
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QString>
@@ -16,6 +18,8 @@ public:
     QString generateTextFromLexemsArray(QJsonArray, QJsonObject);
 
 private:
+    Global* global;
+
     QString text;
     QJsonObject comments;
     bool isTopLevel;

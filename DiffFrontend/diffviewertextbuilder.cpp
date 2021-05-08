@@ -5,7 +5,7 @@
 
 DiffViewerTextBuilder::DiffViewerTextBuilder()
 {
-
+    global = Global::getInstance();
 }
 
 QString DiffViewerTextBuilder::generateText(QJsonValue jsonVal, QJsonObject comments, bool isTopLevel= true)
@@ -88,6 +88,14 @@ void DiffViewerTextBuilder::pasteLexem(const QJsonObject &lex)
         text.append("<font style=\"background-color: #E5F0FF;\">");
         text.append(lex["string"].toString());
         text.append("</font>");
+    }else if (lex["type"].toString() == "errorLexem"){
+        if(lex["id"] == global->getSelectedErrorLexId()){
+            text.append("<font style=\"background-color:#ffffe6;\">");
+        }else{
+            text.append("<font style=\"background-color:#FF9CA1;\">");
+        }
+        text.append(lex["string"].toString());
+        text.append("</font>");
     }else {
         text.append(lex["string"].toString());
     }
@@ -144,7 +152,8 @@ void DiffViewerTextBuilder::genList(const QJsonObject &listObj, bool isFirstCall
 
 
     pasteSpacesBeforeParent(getTrueLine(lparenCoord[0].toInt()),lparenCoord[1].toInt());
-    if(listObj["diff-st"].toString() == "deleted"){
+    if((listObj["diff-st"].toString() == "deleted") ||
+            listObj["isIllegalNode"].toBool()){
         text.append("<font style=\"background-color:#FF9CA1;\">");
         main_part();
         text.append("</font>");
@@ -152,8 +161,13 @@ void DiffViewerTextBuilder::genList(const QJsonObject &listObj, bool isFirstCall
         text.append("<font style=\"background-color:#C9FFBF;\">");
         main_part();
         text.append("</font>");
-    }else if(listObj["diff-st"].toString() == "moved"){
-        text.append("<font style=\"background-color: #E5F0FF;\">");
+    }else if(listObj["diff-st"].isArray() && listObj["diff-st"].toArray()[0] == "moved"){
+        if((global->currentTextVersion == 1 && global->current_selected_moved_ids[1] == listObj["diff-st"].toArray()[1].toInt())
+                || (global->currentTextVersion == 2 && global->current_selected_moved_ids[0] == listObj["diff-st"].toArray()[1].toInt())){
+             text.append("<font style=\"background-color: #AAA0FF;\">");
+        } else {
+           text.append("<font style=\"background-color: #E5F0FF;\">");
+        }
         main_part();
         text.append("</font>");
     }else {

@@ -18,7 +18,7 @@ DiffViewer::DiffViewer(QWidget *parent)
 void DiffViewer::lineNumbeerAreaPaintEvent(QPaintEvent *event)
 {
     QPainter painter(lineNumberArea);
-    painter.fillRect(event->rect(), Qt::blue);
+    painter.fillRect(event->rect(), Qt::black);
 
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();

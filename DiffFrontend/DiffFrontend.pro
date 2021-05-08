@@ -12,20 +12,22 @@ SOURCES += \
     diffviewer.cpp \
     diffviewertext.cpp \
     diffviewertextbuilder.cpp \
+    global.cpp \
     linenumberarea.cpp \
     main.cpp \
     mainwindow.cpp \
-    stat.cpp \
-    statjsonreader.cpp
+    statjsonreader.cpp \
+    stats.cpp
 
 HEADERS += \
     diffviewer.h \
     diffviewertext.h \
     diffviewertextbuilder.h \
+    global.h \
     linenumberarea.h \
     mainwindow.h \
-    stat.h \
-    statjsonreader.h
+    statjsonreader.h \
+    stats.h
 
 FORMS += \
     mainwindow.ui

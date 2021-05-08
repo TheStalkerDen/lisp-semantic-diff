@@ -8,14 +8,15 @@
 #include <QJsonArray>
 #include <QPainter>
 #include <QProcess>
-#include "stat.h"
+#include <QMessageBox>
+#include "stats.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    qDebug() << "Test";
+    global = Global::getInstance();
 }
 
 MainWindow::~MainWindow()
@@ -24,27 +25,53 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::on_actionloadFiles_triggered()
+void MainWindow::on_startCompareButton_clicked()
 {
-    QStringList lispFiles = QFileDialog::getOpenFileNames(this,"Select lisp files");
+    file1Name = filepath1.section("/",-1,-1);
+    file2Name = filepath2.section("/",-1,-1);
     QProcess* backend_process = new QProcess(this);
     QString file = "diff-backend.exe";
-    qDebug() << file;
     cleanOldJsonFiles();
-    backend_process->start(file,lispFiles);
+    QStringList command_args;
+    command_args << filepath1 << filepath2;
+    backend_process->start(file,command_args);
     if (!backend_process->waitForFinished()) {
         qDebug() << "something is wrong";
     }
+    ui->treeWidget->clear();
     qDebug() << "Backend is ok!";
     if (QFile::exists("lexer-errors-msgs1.json")) {
         viewerMode = ViewerMode::ErrorsMode;
         file1ErrorsMode = ErrorsModeTypes::LexicalErrors;
-        errorsMsgs1 = convertJsonArrayToErrorsMsgsMap(getJsonDocument("lexer-errors-msgs1.json").array());
+        errorsMsgs1Array = getJsonDocument("lexer-errors-msgs1.json").array();
     }
     if (QFile::exists("lexer-errors-msgs2.json")) {
         viewerMode = ViewerMode::ErrorsMode;
         file2ErrorsMode = ErrorsModeTypes::LexicalErrors;
-        errorsMsgs2 = convertJsonArrayToErrorsMsgsMap(getJsonDocument("lexer-errors-msgs2.json").array());
+        errorsMsgs2Array = getJsonDocument("lexer-errors-msgs2.json").array();
+    }
+
+    if(QFile::exists("parser-error-msg1.json")) {
+        viewerMode = ViewerMode::ErrorsMode;
+        file1ErrorsMode = ErrorsModeTypes::SyntaxErrors;
+        errorsMsgs1Array.append(getJsonDocument("parser-error-msg1.json").object());
+    }
+
+    if(QFile::exists("parser-error-msg2.json")) {
+        viewerMode = ViewerMode::ErrorsMode;
+        file2ErrorsMode = ErrorsModeTypes::SyntaxErrors;
+        errorsMsgs2Array.append(getJsonDocument("parser-error-msg2.json").object());
+    }
+
+    if (QFile::exists("semantic-errors-msgs1.json")) {
+        viewerMode = ViewerMode::ErrorsMode;
+        file1ErrorsMode = ErrorsModeTypes::SemanticErrors;
+        errorsMsgs1Array = getJsonDocument("semantic-errors-msgs1.json").array();
+    }
+    if (QFile::exists("semantic-errors-msgs2.json")) {
+        viewerMode = ViewerMode::ErrorsMode;
+        file2ErrorsMode = ErrorsModeTypes::SemanticErrors;
+        errorsMsgs2Array = getJsonDocument("semantic-errors-msgs2.json").array();
     }
 
     if (QFile::exists("comments1.json")) {
@@ -54,8 +81,12 @@ void MainWindow::on_actionloadFiles_triggered()
         commentsJsonObj2 = getJsonDocument("comments2.json").object();
     }
 
+    if (QFile::exists("moved-s-exprs-info.json")){
+        movedSexrpInfoArray = getJsonDocument("moved-s-exprs-info.json").array();
+    }
+
     if(viewerMode == ViewerMode::NormalMode){
-        stats = Stat("stats.json");
+        stats = Stats("stats.json");
         fillStatsTree();
         synTreeJson1 = getJsonDocument("res1.json");
         synTreeJson2 = getJsonDocument("res2.json");
@@ -64,21 +95,41 @@ void MainWindow::on_actionloadFiles_triggered()
 
         doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
         doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
-        ui->plainTextEdit->appendHtml(doc1.getText());
-        ui->plainTextEdit_2->appendHtml(doc2.getText());
+        ui->diffViewer1->appendHtml(doc1.getText());
+        ui->diffViewer2->appendHtml(doc2.getText());
     } else if (viewerMode == ViewerMode::ErrorsMode){
         if(QFile::exists("lexems1.json")){
-            qDebug("I am here");
             lexemsArrayJson1 = getJsonDocument("lexems1.json").array();
             doc1.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson1,commentsJsonObj1);
-            ui->plainTextEdit->appendHtml(doc1.getText());
+            ui->diffViewer1->appendHtml(doc1.getText());
         }
         if(QFile::exists("lexems2.json")){
             lexemsArrayJson2 = getJsonDocument("lexems2.json").array();
-            doc1.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson2,commentsJsonObj2);
-            ui->plainTextEdit_2->appendHtml(doc2.getText());
+            doc2.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson2,commentsJsonObj2);
+            ui->diffViewer2->appendHtml(doc2.getText());
         }
+        if(QFile::exists("res1.json")){
+            synTreeJson1 = getJsonDocument("res1.json");
+            doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
+            ui->diffViewer1->appendHtml(doc1.getText());
+        }
+        if(QFile::exists("res2.json")){
+            synTreeJson2 = getJsonDocument("res2.json");
+            doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
+            ui->diffViewer2->appendHtml(doc2.getText());
+        }
+        if(file1ErrorsMode == ErrorsModeTypes::NoErrors){
+            ui->diffViewer1->appendPlainText(getStringFromFile(filepath1));
+        }
+        if(file2ErrorsMode == ErrorsModeTypes::NoErrors){
+            ui->diffViewer2->appendPlainText(getStringFromFile(filepath2));
+        }
+        fillErrorsInfoTree();
     }
+    ui->stackedWidget->setCurrentIndex(1);
+    QMenu* actionsMenu = new QMenu();
+    actionsMenu->addAction("Go to main page");
+    ui->menubar->addMenu(actionsMenu);
 }
 
 void MainWindow::fillStatsTree()
@@ -86,50 +137,86 @@ void MainWindow::fillStatsTree()
     auto& statsTree = ui->treeWidget;
     auto* topLevelItem = new QTreeWidgetItem();
     topLevelItem->setText(0,"all");
+    topLevelItem->setData(0,Qt::ItemDataRole::UserRole,"all");
     statsTree->addTopLevelItem(topLevelItem);
-    auto* defunsStats = new QTreeWidgetItem();
-    defunsStats->setText(0,"defuns");
-    statsTree->addTopLevelItem(defunsStats);
+    for(auto& tldType: stats.getTldTypes()){
+        auto* specificTLDTypeItem = new QTreeWidgetItem();
+        specificTLDTypeItem->setText(0,tldType);
+        statsTree->addTopLevelItem(specificTLDTypeItem);
 
-    auto* no_mods = new QTreeWidgetItem();
-    no_mods->setText(0,"no-mods");
-    auto& no_mod_ids = stats.getNoMods();
-    for(auto& no_mod_id : no_mod_ids){
-        auto* no_mod_item = new QTreeWidgetItem();
-        no_mod_item->setText(0,no_mod_id);
-        no_mods->addChild(no_mod_item);
-    }
-    defunsStats->addChild(no_mods);
+        auto& no_mods_ids_set = stats.getNoMods(tldType);
+        if(no_mods_ids_set.size() > 0){
+            auto* no_mods_tree_item = getStatsTreeItem(no_mods_ids_set,"same");
+            specificTLDTypeItem->addChild(no_mods_tree_item);
+        }
 
-    auto* mods = new QTreeWidgetItem();
-    mods->setText(0,"mods");
-    auto& mod_ids = stats.getMod();
-    for(auto& mod_id : mod_ids){
-        auto* mod_item = new QTreeWidgetItem();
-        mod_item->setText(0,mod_id);
-        mods->addChild(mod_item);
-    }
-    defunsStats->addChild(mods);
+        auto& mods_ids_set = stats.getMod(tldType);
+        if(mods_ids_set.size() > 0){
+            auto* mods_tree_item = getStatsTreeItem(mods_ids_set,"mods");
+            specificTLDTypeItem->addChild(mods_tree_item);
+        }
 
-    auto* news  = new QTreeWidgetItem();
-    news->setText(0,"news");
-    auto& new_ids = stats.getNew();
-    for(auto& new_id : new_ids){
-        auto* new_item = new QTreeWidgetItem();
-        new_item->setText(0,new_id);
-        news->addChild(new_item);
-    }
-    defunsStats->addChild(news);
+        auto& news_ids_set = stats.getNew(tldType);
+        if(news_ids_set.size() > 0){
+            auto* news_tree_item = getStatsTreeItem(news_ids_set,"news");
+            specificTLDTypeItem->addChild(news_tree_item);
+        }
 
-    auto* dels  = new QTreeWidgetItem();
-    dels->setText(0,"dels");
-    auto& del_ids = stats.getDel();
-    for(auto& del_id : del_ids){
-        auto* del_item = new QTreeWidgetItem();
-        del_item->setText(0,del_id);
-        dels->addChild(del_item);
+        auto& dels_ids_set = stats.getDel(tldType);
+        if(dels_ids_set.size() > 0){
+            auto* dels_tree_item = getStatsTreeItem(dels_ids_set,"dels");
+            specificTLDTypeItem->addChild(dels_tree_item);
+        }
     }
-    defunsStats->addChild(dels);
+}
+
+QTreeWidgetItem* MainWindow::getStatsTreeItem(QSet<QString> identSet, QString className){
+    auto* classItem  = new QTreeWidgetItem();
+    classItem->setText(0,className);
+    for(auto& ident : identSet){
+        auto* identItem = new QTreeWidgetItem();
+        identItem->setText(0,ident);
+        identItem->setData(0,Qt::ItemDataRole::UserRole,"identName");
+        classItem->addChild(identItem);
+    }
+    return classItem;
+}
+
+void MainWindow::fillErrorsInfoTree()
+{
+    auto& errorsInfoTree = ui->treeWidget;
+    auto* errorsInfoTreeNode1 = getErrorsInfoTreeNode(file1ErrorsMode,errorsMsgs1Array, file1Name,1);
+    auto* errorsInfoTreeNode2 = getErrorsInfoTreeNode(file2ErrorsMode,errorsMsgs2Array, file2Name,2);
+    if(errorsInfoTreeNode1){
+        errorsInfoTree->addTopLevelItem(errorsInfoTreeNode1);
+    }
+    if(errorsInfoTreeNode2){
+        errorsInfoTree->addTopLevelItem(errorsInfoTreeNode2);
+    }
+}
+
+QTreeWidgetItem* MainWindow::getErrorsInfoTreeNode(ErrorsModeTypes fileErrorsMode, QJsonArray errorsMsgsArray, QString fileName, int num)
+{
+    if(fileErrorsMode != ErrorsModeTypes::NoErrors){
+        auto* fileErrorsInfoTreeNode = new QTreeWidgetItem();
+        QString errorType;
+        switch(fileErrorsMode){
+            case ErrorsModeTypes::LexicalErrors : errorType = "lexical" ; break;
+            case ErrorsModeTypes::SyntaxErrors : errorType = "syntax" ; break;
+            case ErrorsModeTypes::SemanticErrors : errorType = "semantic"; break;
+            case ErrorsModeTypes::NoErrors:;
+        }
+        fileErrorsInfoTreeNode->setText(0,QString("%1 %2 errors").arg(fileName,errorType));
+        fileErrorsInfoTreeNode->setData(0,Qt::ItemDataRole::UserRole,num);
+        for(int i = 0 ; i < errorsMsgsArray.size(); i++){
+            auto* errorMsgItem = new QTreeWidgetItem();
+            errorMsgItem->setText(0,errorsMsgsArray[i].toObject()["errorText"].toString());
+            errorMsgItem->setData(0,Qt::ItemDataRole::UserRole, "errorInfo");
+            fileErrorsInfoTreeNode->addChild(errorMsgItem);
+        }
+        return fileErrorsInfoTreeNode;
+    }
+    return nullptr;
 }
 
 void MainWindow::analyzeSynTree(QJsonDocument &doc, int num)
@@ -137,7 +224,7 @@ void MainWindow::analyzeSynTree(QJsonDocument &doc, int num)
    const auto& topLevelArray = doc.array();
    for(const auto& obj: topLevelArray){
        QJsonObject topLevelDef = obj.toObject();
-       QString tldName = topLevelDef["props"].toObject()["isDefun"].toString();
+       QString tldName = topLevelDef["props"].toObject()["istoplevel"].toString();
        if(num == 1){
            nameToObj1[tldName] = topLevelDef;
        }else {
@@ -154,21 +241,16 @@ void MainWindow::cleanOldJsonFiles()
     QFile::remove("comments2.json");
     QFile::remove("lexer-errors-msgs1.json");
     QFile::remove("lexer-errors-msgs2.json");
+    QFile::remove("parser-error-msg1.json");
+    QFile::remove("parser-error-msg2.json");
+    QFile::remove("semantic-errors-msgs1.json");
+    QFile::remove("semantic-errors-msgs2.json");
     QFile::remove("res1.json");
     QFile::remove("res2.json");
     QFile::remove("stats.json");
+    QFile::remove("moved-s-exprs-info.json");
 }
 
-ErrorsMsgsMap MainWindow::convertJsonArrayToErrorsMsgsMap(QJsonArray array)
-{
-    ErrorsMsgsMap errorsMsgsMap;
-    for(int i = 0; i < array.size(); i++){
-        int errorLexId = array[i].toObject()["errorLexId"].toInt();
-        errorsMsgsMap[errorLexId] = array[i].toObject();
-        errorsMsgsMap[errorLexId].insert("isSelected",QJsonValue(false));
-    }
-    return errorsMsgsMap;
-}
 
 QJsonDocument MainWindow::getJsonDocument(QString pathname)
 {
@@ -183,32 +265,138 @@ QJsonDocument MainWindow::getJsonDocument(QString pathname)
     return QJsonDocument::fromJson(saveData);
 }
 
+QString MainWindow::getStringFromFile(QString pathname)
+{
+    QFile loadFile(pathname);
+    if(!loadFile.open(QIODevice::ReadOnly)){
+        qWarning("Couldn't open file.");
+        return QString();
+    }
+
+    QByteArray saveData = loadFile.readAll();
+
+    return QString(saveData);
+}
+
+bool MainWindow::isTextCursorInsideMovedSexpr(int line, int column, int viewerNum)
+{
+    QJsonArray start_coord_sexpr;
+    QJsonArray end_coord_sexpr;
+    for(int i = 0; i < movedSexrpInfoArray.size(); i++){
+        const auto& movedSexprInfo = movedSexrpInfoArray[i].toObject();
+        if(viewerNum == 1){
+            start_coord_sexpr = movedSexprInfo["startCoordOfId1"].toArray();
+            end_coord_sexpr = movedSexprInfo["endCoordOfId1"].toArray();
+        } else if(viewerNum == 2){
+            start_coord_sexpr = movedSexprInfo["startCoordOfId2"].toArray();
+            end_coord_sexpr = movedSexprInfo["endCoordOfId2"].toArray();
+        }
+
+       if(line >= start_coord_sexpr[0].toInt() && line <= end_coord_sexpr[0].toInt()
+          && column >= start_coord_sexpr[1].toInt() && column <= end_coord_sexpr[1].toInt()){
+          global->current_selected_moved_ids[0] = movedSexprInfo["sExprId1"].toInt();
+          global->current_selected_moved_ids[1] = movedSexprInfo["sExprId2"].toInt();
+          return true;
+       }
+    }
+    //global->current_selected_moved_ids[0] = -1;
+    //global->current_selected_moved_ids[1] = -1;
+    return false;
+}
+
 void MainWindow::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
 {
-    qDebug() << item->text(0);
-    QString text = item->text(0);
-    if(text == "all"){
-        doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()), commentsJsonObj1);
-        doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()), commentsJsonObj2);
-        ui->plainTextEdit->clear();
-        ui->plainTextEdit_2->clear();
-        ui->plainTextEdit->appendHtml(doc1.getText());
-        ui->plainTextEdit_2->appendHtml(doc2.getText());
-    } else {
-        if(nameToObj1.contains(text)){
-            doc1.generateHTMLTextFromJson(QJsonValue(nameToObj1[text]), commentsJsonObj1,false);
-            ui->plainTextEdit->clear();
-            ui->plainTextEdit->appendHtml(doc1.getText());
-        }
-        if(nameToObj2.contains(text)){
-            doc2.generateHTMLTextFromJson(QJsonValue(nameToObj2[text]), commentsJsonObj2,false);
-            ui->plainTextEdit_2->clear();
-            ui->plainTextEdit_2->appendHtml(doc2.getText());
-        }
-        if(nameToObj1.contains(text) && !nameToObj2.contains(text)){
-            ui->plainTextEdit_2->clear();
-        }else if (!nameToObj1.contains(text) && nameToObj2.contains(text)) {
-            ui->plainTextEdit->clear();
+    if(item->data(0,Qt::ItemDataRole::UserRole).type() == QVariant::Type::String){
+        qDebug() << item->text(0);
+        QString text = item->text(0);
+        QString itemData = item->data(0,Qt::ItemDataRole::UserRole).toString();
+        if(itemData == "all"){
+            doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()), commentsJsonObj1);
+            doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()), commentsJsonObj2);
+            ui->diffViewer1->clear();
+            ui->diffViewer2->clear();
+            ui->diffViewer1->appendHtml(doc1.getText());
+            ui->diffViewer2->appendHtml(doc2.getText());
+        } else if (itemData == "identName") {
+            qDebug()  << item->parent()->indexOfChild(item);
+            if(nameToObj1.contains(text)){
+                doc1.generateHTMLTextFromJson(QJsonValue(nameToObj1[text]), commentsJsonObj1,false);
+                ui->diffViewer1->clear();
+                ui->diffViewer1->appendHtml(doc1.getText());
+            }
+            if(nameToObj2.contains(text)){
+                doc2.generateHTMLTextFromJson(QJsonValue(nameToObj2[text]), commentsJsonObj2,false);
+                ui->diffViewer2->clear();
+                ui->diffViewer2->appendHtml(doc2.getText());
+            }
+            if(nameToObj1.contains(text) && !nameToObj2.contains(text)){
+                ui->diffViewer2->clear();
+            }else if (!nameToObj1.contains(text) && nameToObj2.contains(text)) {
+                ui->diffViewer1->clear();
+            }
+        } else if (itemData == "errorInfo") {
+            int pos = item->parent()->indexOfChild(item);
+            int docNum = item->parent()->data(0,Qt::ItemDataRole::UserRole).toInt();
+            if(docNum == 1){
+                global->selected_error_lex_id1 = errorsMsgs1Array[pos].toObject()["errorLexId"].toInt();
+                doc1.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson1,commentsJsonObj1);
+                ui->diffViewer1->clear();
+                ui->diffViewer1->appendHtml(doc1.getText());
+            } else if(docNum == 2) {
+                global->selected_error_lex_id2 = errorsMsgs2Array[pos].toObject()["errorLexId"].toInt();
+                doc2.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson2,commentsJsonObj2);
+                ui->diffViewer2->clear();
+                ui->diffViewer2->appendHtml(doc2.getText());
+            }
         }
     }
 }
+
+void MainWindow::on_chooseFile1Button_clicked()
+{
+    filepath1 = QFileDialog::getOpenFileName(this,"Select LISP file");
+    ui->filepath1Label->setText(filepath1);
+    if(filepath2.length() > 0){
+        ui->startCompareButton->setEnabled(true);
+    }
+}
+
+void MainWindow::on_chooseFile2Button_clicked()
+{
+    filepath2 = QFileDialog::getOpenFileName(this,"Select LISP file");
+    ui->filepath2Label->setText(filepath2);
+    if(filepath1.length() > 0){
+        ui->startCompareButton->setEnabled(true);
+    }
+}
+
+void MainWindow::on_actiontool_creator_triggered()
+{
+    QMessageBox message_about_creator;
+    message_about_creator.setText("This project was created by Denys Yermolenko KV-73");
+    message_about_creator.exec();
+}
+
+void MainWindow::on_diffViewer1_cursorPositionChanged()
+{
+    int line = ui->diffViewer1->textCursor().blockNumber() + 1;
+    int column = ui->diffViewer1->textCursor().positionInBlock() + 1;
+    int abs_pos = ui->diffViewer1->textCursor().position();
+    if(was_recreated_text == false && isTextCursorInsideMovedSexpr(line, column, 1)){
+        ui->diffViewer1->clear();
+        ui->diffViewer2->clear();
+        doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
+        ui->diffViewer1->appendHtml(doc1.getText());
+        ui->diffViewer1->textCursor().setPosition(abs_pos);
+        doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
+        ui->diffViewer2->appendHtml(doc2.getText());
+        was_recreated_text = true;
+    }
+}
+
+void MainWindow::on_diffViewer2_cursorPositionChanged()
+{
+    qDebug() << ui->diffViewer2->textCursor().blockNumber();
+    qDebug() << ui->diffViewer2->textCursor().positionInBlock();
+}
+

@@ -6,9 +6,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-DiffViewerText::DiffViewerText(QObject *parent) : QObject(parent)
+DiffViewerText::DiffViewerText(int forTextVersion, QObject *parent) : QObject(parent)
 {
-
+    this->forTextVersion = forTextVersion;
+    global = Global::getInstance();
 }
 
 QString DiffViewerText::getText()
@@ -18,12 +19,16 @@ QString DiffViewerText::getText()
 
 void DiffViewerText::generateHTMLTextFromLexemsArrayJson(QJsonArray lexems, QJsonObject comments)
 {
+    global->currentTextVersion = forTextVersion;
+    text.clear();
     DiffViewerTextBuilder builder;
     text = builder.generateTextFromLexemsArray(lexems,comments);
 }
 
 void DiffViewerText::generateHTMLTextFromJson(QJsonValue jsonVal,QJsonObject comments, bool isTopLevel)
 {
+    global->currentTextVersion = forTextVersion;
+    text.clear();
     DiffViewerTextBuilder builder;
     text = builder.generateText(jsonVal,comments, isTopLevel);
 }
