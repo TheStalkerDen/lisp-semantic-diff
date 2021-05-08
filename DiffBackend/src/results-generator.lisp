@@ -9,7 +9,9 @@
            #:get-json-comments
            #:get-lexer-errors-msgs-json
            #:get-parser-error-msg-json
-           #:get-lexems-json))
+           #:get-semantic-errors-msgs-json
+           #:get-lexems-json
+           #:get-moved-s-exprs-json))
 
 (in-package :diff-backend/results-generator)
 
@@ -49,19 +51,40 @@
    parser-error-msg
    stream))
 
+(defun get-semantic-errors-msgs-json (semantic-errors-msgs stream)
+  (encode-json
+   semantic-errors-msgs
+   stream))
+
 (defun get-lexems-json (lexems stream)
   (encode-json
    lexems
    stream))
 
+(defun get-moved-s-exprs-json (moved-s-exprs-list stream)
+  (encode-json
+   moved-s-exprs-list
+   stream))
+
 (defgeneric gener-res-object (obj))
+
+(defmethod gener-res-object ((obj illegal-node))
+  (with-ht
+    (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
+    (when (top? obj)
+      (add-to-ht "isIllegalNode" t))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
+    (add-to-ht "elems" (gener-res-object (elements obj)))))
 
 (defmethod gener-res-object ((obj defun-node))
   (with-ht
     (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
     (add-to-ht "diff-st" (diff-status obj))
     (add-to-ht "props" (alexandria:alist-hash-table
-                        `((:is-defun . ,(get-lexem-name (function-name obj))))))
+                        `((:isTopLevel . ,(string-upcase (get-lexem-name (function-name obj)))))))
     (add-to-ht "par-info" (alexandria:alist-hash-table
                            (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (list*
@@ -79,6 +102,7 @@
 (defmethod gener-res-object ((obj function-call-node))
   (with-ht
     (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
     (add-to-ht "diff-st" (diff-status obj))
     (add-to-ht "par-info" (alexandria:alist-hash-table
                            (parenthesis-info obj) :test #'equal))
@@ -89,14 +113,16 @@
 (defmethod gener-res-object ((obj list-node))
   (with-ht
     (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
     (add-to-ht "diff-st" (diff-status obj))
     (add-to-ht "par-info" (alexandria:alist-hash-table
                            (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (gener-res-object (elements obj)))))
 
-(defmethod gener-res-object ((obj lexem-wrapper-node))
+(defmethod gener-res-object ((obj atom-node))
   (with-ht
     (add-to-ht "type" "lexem")
+    (add-to-ht "id" (id obj))
     (add-to-ht "diff-st" (diff-status obj))
     (let ((lex (lexem-info obj)))
       (add-to-ht "lexem-coord" `(,(lexem-line lex)

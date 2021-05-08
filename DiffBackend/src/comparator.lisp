@@ -18,14 +18,32 @@
 
 (defparameter *cmp-memoization-table* nil)
 
+(defclass moved-s-expr-info ()
+  ((s-expr-id1 :accessor s-expr-id1
+               :initarg :s-expr-id1)
+   (s-expr-id2 :accessor s-expr-id2
+               :initarg :s-expr-id2)
+   (start-coord-of-id1 :accessor start-coord-of-id1
+                       :initarg :start-coord-of-id1)
+   (start-coord-of-id2 :accessor start-coord-of-id2
+                       :initarg :start-coord-of-id2)
+   (end-coord-of-id1 :accessor end-coord-of-id1
+                     :initarg :end-coord-of-id1)
+   (end-coord-of-id2 :accessor end-coord-of-id2
+                     :initarg :end-coord-of-id2)))
+
+(defparameter *moved-s-exprs-list* nil)
+
 (defun compare-results ()
   (let ((ver1-stats (get-stats 1))
-        (ver2-stats (get-stats 2)))
+        (ver2-stats (get-stats 2))
+        (*moved-s-exprs-list*))
     (loop :for stat-name :being :the :hash-keys :of ver1-stats
           :do
              (compare-specific-stats-hts
               (gethash stat-name ver1-stats)
-              (gethash stat-name ver2-stats)))))
+              (gethash stat-name ver2-stats)))
+    (reverse *moved-s-exprs-list*)))
 
 ;;;it tests results after compare!!!
 (defun compare-specific-stats-hts (ht1 ht2)
@@ -68,28 +86,43 @@
     *was-modified*))
 
 (defun maybe-issue-resolver ()
-  (dolist (maybe-deleted *maybe-deleted-nodes*)
-    (dolist (maybe-new *maybe-new-nodes*)
-      (acond
-        ((gethash (cons (id maybe-deleted)
-                        (id maybe-new))
-                  *cmp-memoization-table*)
-         (when (first it)
+  (labels
+      ((%add-to-moved-s-exprs-list (maybe-deleted maybe-new)
+         (let ((first-and-last-coord1 (get-first-and-last-coord maybe-deleted))
+               (first-and-last-coord2 (get-first-and-last-coord maybe-new)))
+           (push (make-instance
+                  'moved-s-expr-info
+                  :s-expr-id1 (id maybe-deleted)
+                  :s-expr-id2 (id maybe-new)
+                  :start-coord-of-id1 (first first-and-last-coord1)
+                  :end-coord-of-id1 (second first-and-last-coord1)
+                  :start-coord-of-id2 (first first-and-last-coord2)
+                  :end-coord-of-id2 (second first-and-last-coord2))
+                 *moved-s-exprs-list*))))
+    (dolist (maybe-deleted *maybe-deleted-nodes*)
+      (dolist (maybe-new *maybe-new-nodes*)
+        (acond
+          ((gethash (cons (id maybe-deleted)
+                          (id maybe-new))
+                    *cmp-memoization-table*)
+           (when (first it)
+             (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
+             (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
+             (remove-from-memoiz-table :first-id (id maybe-deleted)
+                                       :second-id (id maybe-new))
+             (%add-to-moved-s-exprs-list maybe-deleted maybe-new)
+             (return)))
+          ((compare maybe-deleted maybe-new)
            (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
            (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-           (remove-from-memoiz-table :first-id (id maybe-deleted)
-                                     :second-id (id maybe-new))
-           (return)))
-        ((compare maybe-deleted maybe-new)
-         (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-         (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-         (return))))
-    (setf *maybe-new-nodes*
-          (remove-if
-           (lambda (el)
-             (when (listp (diff-status el))
-               (eq (first (diff-status el)) :moved)))
-           *maybe-new-nodes*)))
+           (%add-to-moved-s-exprs-list maybe-deleted maybe-new)
+           (return))))
+      (setf *maybe-new-nodes*
+            (remove-if
+             (lambda (el)
+               (when (listp (diff-status el))
+                 (eq (first (diff-status el)) :moved)))
+             *maybe-new-nodes*))))
   (setf *maybe-deleted-nodes*
         (remove-if
          (lambda (el)
@@ -101,9 +134,9 @@
   (dolist (new-obj *maybe-new-nodes*)
     (set-diff-status new-obj :new)))
 
+
 (defgeneric compare (obj1 obj2)
   (:method (obj1 obj2)
-    (warn "Unsupported compare for ~S and ~S ~%" obj1 obj2)
     (values nil 0 nil nil))
   (:documentation "Out1 - fully equal
 Out2 - equal leaf-nodes
@@ -113,6 +146,24 @@ Out4 - diff-patch for obj2"))
 (defgeneric apply-diff-patch (obj diff-patch diff-status)
   (:method (obj diff-patch diff-status)
     (error "Unsupported apply-diff-patch for ~S" obj)))
+
+(defgeneric get-first-and-last-coord (obj)
+  (:method (obj)
+    (warn "No support for get-first-and-last-coord")
+    `((0 0) (0 0))))
+
+(defmethod get-first-and-last-coord ((obj parenthesis-mixin))
+  (let ((par-info (parenthesis-info obj)))
+    `(,(rest (first par-info))
+      ,(rest (second par-info)))))
+
+(defmethod get-first-and-last-coord ((obj atom-node))
+  (let ((lex-info (lexem-info obj)))
+    `((,(lexer:lexem-line lex-info)
+       ,(lexer:lexem-column lex-info))
+      (,(lexer:lexem-line lex-info)
+       ,(+ (lexer:lexem-column lex-info)
+           (length (lexer:lexem-string lex-info)))))))
 
 (defun remove-from-memoiz-table (&key first-id second-id)
   (maphash (lambda (key val)
@@ -129,7 +180,7 @@ Out4 - diff-patch for obj2"))
   (:method (obj1 obj2)
     (format t "set-diff-statud default method for object without diff-status-mixin. Something is wrong: ~A ~A~%" obj1 obj2)))
 
-(defmethod set-diff-status ((obj diff-status-mixin) status)
+(defmethod set-diff-status ((obj main-fields-mixin) status)
   (setf (diff-status obj) status)
   (cond ((eq status :maybe-new)
          (push obj *maybe-new-nodes*))
@@ -391,7 +442,7 @@ Out4 - diff-patch for obj2"))
 (defmethod apply-diff-patch ((obj list-node) diff-patch diff-status)
   (apply-diff-patch (elements obj) diff-patch diff-status))
 
-(defmethod compare ((obj1 lexem-wrapper-node) (obj2 lexem-wrapper-node))
+(defmethod compare ((obj1 atom-node) (obj2 atom-node))
   (let ((lex-info1 (lexem-info obj1))
         (lex-info2 (lexem-info obj2)))
     (unless (eq (lexer:lexem-type lex-info1) (lexer:lexem-type lex-info2))

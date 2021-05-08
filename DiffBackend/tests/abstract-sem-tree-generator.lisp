@@ -10,7 +10,7 @@
   "1"
   (list
    (make-instance
-    'lexem-wrapper-node
+    'simple-atom-node
     :lexem-info (make-lexem
                  "1"
                  1
@@ -25,7 +25,7 @@
    (make-instance
     'function-call-node
     :func-lexem (make-instance
-                 'lexem-wrapper-node
+                 'func-name-atom
                  :lexem-info (make-lexem
                               "fun"
                               1
@@ -44,7 +44,7 @@
    (make-instance
     'function-call-node
     :func-lexem (make-instance
-                 'lexem-wrapper-node
+                 'func-name-atom
                  :lexem-info (make-lexem
                               "fun"
                               1
@@ -55,7 +55,7 @@
     :parenthesis-info `((:lparen-coord 1 1)
                         (:rparen-coord 1 7))
     :func-arg-forms (vector (make-instance
-                             'lexem-wrapper-node
+                             'simple-atom-node
                              :lexem-info
                              (make-lexem
                               "1"
@@ -72,7 +72,7 @@
    (make-instance
     'defun-node
     :keyword-lexem (make-instance
-                    'lexem-wrapper-node
+                    'keyword-atom
                     :lexem-info (make-lexem
                                  "defun"
                                  1
@@ -81,7 +81,7 @@
                                  :lex-id 2)
                     :id 1)
     :func-name (make-instance
-                'lexem-wrapper-node
+                'func-name-atom
                 :lexem-info (make-lexem
                              "a"
                              1
@@ -99,7 +99,7 @@
                       :id 3)
     :body-forms (vector
                  (make-instance
-                  'lexem-wrapper-node
+                  'simple-atom-node
                   :lexem-info (make-lexem
                                "1"
                                1
@@ -115,7 +115,7 @@
    (make-instance
     'defun-node
     :keyword-lexem (make-instance
-                    'lexem-wrapper-node
+                    'keyword-atom
                     :lexem-info (make-lexem
                                  "defun"
                                  1
@@ -124,7 +124,7 @@
                                  :lex-id 2)
                     :id 1)
     :func-name (make-instance
-                'lexem-wrapper-node
+                'func-name-atom
                 :lexem-info (make-lexem
                              "a"
                              1
@@ -139,7 +139,7 @@
                       :parenthesis-info `((:lparen-coord 1 10)
                                           (:rparen-coord 1 12))
                       :elements (vector (make-instance
-                                         'lexem-wrapper-node
+                                         'simple-atom-node
                                          :lexem-info (make-lexem
                                                       "b"
                                                       1
@@ -149,7 +149,7 @@
                                          :id 4))
                       :id 3)
     :body-forms (vector (make-instance
-                         'lexem-wrapper-node
+                         'simple-atom-node
                          :lexem-info (make-lexem
                                       "b"
                                       1
@@ -166,7 +166,7 @@
     'defun-node
     :id 0
     :keyword-lexem (make-instance
-                    'lexem-wrapper-node
+                    'keyword-atom
                     :lexem-info (make-lexem
                                  "defun"
                                  1
@@ -175,7 +175,7 @@
                                  :lex-id 2)
                     :id 1)
     :func-name (make-instance
-                'lexem-wrapper-node
+                'func-name-atom
                 :lexem-info (make-lexem
                              "a"
                              1
@@ -191,7 +191,7 @@
                                           (:rparen-coord 1 12))
                       :elements (vector
                                  (make-instance
-                                  'lexem-wrapper-node
+                                  'simple-atom-node
                                   :lexem-info (make-lexem
                                                "b"
                                                1
@@ -205,7 +205,7 @@
                   'function-call-node
                   :id 5
                   :func-lexem (make-instance
-                               'lexem-wrapper-node
+                               'func-name-atom
                                :id 6
                                :lexem-info (make-lexem
                                             "f"
@@ -217,7 +217,7 @@
                                       (:rparen-coord 1 20))
                   :func-arg-forms (vector
                                    (make-instance
-                                    'lexem-wrapper-node
+                                    'simple-atom-node
                                     :lexem-info (make-lexem
                                                  "b"
                                                  1
@@ -226,7 +226,7 @@
                                                  :lex-id 9)
                                     :id 7)
                                    (make-instance
-                                    'lexem-wrapper-node
+                                    'simple-atom-node
                                     :lexem-info (make-lexem
                                                  "1"
                                                  1

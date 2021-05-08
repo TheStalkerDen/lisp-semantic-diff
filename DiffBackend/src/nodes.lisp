@@ -2,7 +2,12 @@
     (:nicknames :ast-nodes)
   (:use :cl :diff-backend/utils
         :diff-backend/lexer)
-  (:export #:get-lexem-name))
+  (:export #:get-lexem-name
+           #:simple-atom-node
+           #:parm-atom
+           #:decl-var-atom
+           #:func-name-atom
+           #:keyword-atom))
 
 (in-package :diff-backend/nodes)
 
@@ -11,17 +16,19 @@
                        (&rest slot-specs)
                        &optional class-option)
   `(progn
-     (defclass* ,name (,@(nconc superclasses '(diff-status-mixin
-                                               id-mixin
-                                               no-whitespace-length-mixin)))
+     (defclass* ,name (,@(nconc superclasses '(main-fields-mixin
+                                               spec-length-mixin)))
          ,slot-specs
        ,(when class-option
           class-option))))
 
-(defclass* diff-status-mixin ()
-  ((diff-status :accessor diff-status
-                :initarg :diff-status
-                :initform :same)))
+(defclass* main-fields-mixin ()
+    ((diff-status :accessor diff-status
+                  :initarg :diff-status
+                  :initform :same)
+     (id :accessor id
+         :initarg :id
+         :initform -1)))
 
 (defclass* parenthesis-mixin ()
   ((parenthesis-info :accessor parenthesis-info
@@ -31,47 +38,62 @@
   ((keyword-lexem :accessor keyword-lexem
                   :initarg :keyword-lexem)))
 
-(defclass* id-mixin ()
-    ((id :accessor id
-         :initarg :id
-         :initform -1)))
+(defclass* spec-length-mixin ()
+  ((spec-length :accessor spec-length
+                :initarg :spec-length)))
 
-(defclass* no-whitespace-length-mixin ()
-  ((no-whitespace-length :accessor no-whitespace-length
-                         :initarg :no-whitespace-length)))
-
-(defgeneric calculate-no-whitespace-length (obj)
+(defgeneric calculate-spec-length (obj)
   (:method (obj)
-    (print "Can't calculate no-whitespace-length for obj ~S" obj)))
+    (print "Can't calculate spec-length for obj ~S" obj)))
 
-(defmethod calculate-no-whitespace-length :around ((obj no-whitespace-length-mixin))
-  (if (slot-boundp obj 'no-whitespace-length)
-      (slot-value obj 'no-whitespace-length)
+(defmethod calculate-spec-length :around ((obj spec-length-mixin))
+  (if (slot-boundp obj 'spec-length)
+      (slot-value obj 'spec-length)
       (call-next-method)))
 
-(defmethod initialize-instance :after ((obj no-whitespace-length-mixin) &key)
-  (with-slots (no-whitespace-length) obj
-    (unless (slot-boundp obj 'no-whitespace-length)
-      (setf no-whitespace-length (calculate-no-whitespace-length obj)))))
+(defmethod initialize-instance :after ((obj spec-length-mixin) &key)
+  (with-slots (spec-length) obj
+    (unless (slot-boundp obj 'spec-length)
+      (setf spec-length (calculate-spec-length obj)))))
 
-;;;LEXEM-WRAPPER-NODE
-(define-node lexem-wrapper-node ()
+;;;ILLEGAL-S-EXPR
+(define-node illegal-node (parenthesis-mixin)
+    ((elements :accessor elements
+               :initarg :elements)
+     (is-top? :accessor top?
+             :initarg :is-top?)))
+
+(defmethod calculate-spec-length ((obj illegal-node))
+  (values 0))
+
+;;;ATOM-NODE
+(define-node atom-node ()
   ((lexem-info :accessor lexem-info
                :initarg :lexem-info)))
 
 (defgeneric get-lexem-name (obj))
 
-(defmethod get-lexem-name ((obj lexem-wrapper-node))
+(defmethod get-lexem-name ((obj atom-node))
   (slot-value (slot-value obj 'lexem-info) 'string))
 
-(defmethod calculate-no-whitespace-length ((obj lexem-wrapper-node))
+(defmethod calculate-spec-length ((obj atom-node))
   (with-slots (lexem-info) obj
     (length (lexem-string lexem-info))))
 
-(defmethod print-object ((obj lexem-wrapper-node) stream)
+(defmethod print-object ((obj atom-node) stream)
   (with-slots (lexem-info) obj
       (print-unreadable-object (obj stream)
         (format stream "~S" (lexem-string lexem-info)))))
+
+(defclass simple-atom-node (atom-node) ())
+
+(defclass parm-atom (atom-node) ())
+
+(defclass decl-var-atom (atom-node) ())
+
+(defclass func-name-atom (atom-node) ())
+
+(defclass keyword-atom (atom-node) ())
 
 ;;;DEFUN-NODE
 (define-node defun-node (parenthesis-mixin keyword-mixin)
@@ -84,12 +106,12 @@
    (body-forms :accessor body-forms
                :initarg :body-forms)))
 
-(defmethod calculate-no-whitespace-length ((obj defun-node))
+(defmethod calculate-spec-length ((obj defun-node))
   (with-slots (function-name parameters-list body-forms keyword-lexem) obj
-      (+ (calculate-no-whitespace-length function-name)
-         (calculate-no-whitespace-length parameters-list)
-         (calculate-no-whitespace-length body-forms)
-         (calculate-no-whitespace-length keyword-lexem)
+    (+ (1+ (calculate-spec-length function-name))
+       (1+ (calculate-spec-length parameters-list))
+       (1+ (calculate-spec-length body-forms))
+       (1+ (calculate-spec-length keyword-lexem))
          2)))
 
 ;;;FUNCTION-CALL-NODE
@@ -99,10 +121,10 @@
    (func-arg-forms :accessor func-arg-forms
                    :initarg :func-arg-forms)))
 
-(defmethod calculate-no-whitespace-length ((obj function-call-node))
+(defmethod calculate-spec-length ((obj function-call-node))
   (with-slots (func-lexem func-arg-forms) obj 
-    (+ (calculate-no-whitespace-length func-lexem)
-       (calculate-no-whitespace-length func-arg-forms)
+    (+ (1+ (calculate-spec-length func-lexem))
+       (calculate-spec-length func-arg-forms)
        2)))
 
 (defmethod print-object ((obj function-call-node) stream)
@@ -115,14 +137,14 @@
   ((elements :accessor elements
              :initarg :elements)))
 
-(defmethod calculate-no-whitespace-length ((obj list-node))
+(defmethod calculate-spec-length ((obj list-node))
   (with-slots (elements) obj
-    (+ 2 (calculate-no-whitespace-length elements))))
+    (+ 2 (calculate-spec-length elements))))
 
-(defmethod calculate-no-whitespace-length ((obj list))
-  (loop :for el :in obj
-        :sum (calculate-no-whitespace-length el)))
+(defmethod calculate-spec-length ((obj list))
+  (1- (loop :for el :in obj
+            :sum (1+ (calculate-spec-length el)))))
 
-(defmethod calculate-no-whitespace-length ((obj vector))
-  (loop :for el :across obj
-       :sum (calculate-no-whitespace-length el)))
+(defmethod calculate-spec-length ((obj vector))
+  (1- (loop :for el :across obj
+            :sum (1+ (calculate-spec-length el)))))

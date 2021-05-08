@@ -98,23 +98,24 @@
         deleted-names
         new-names)
     (maphash (lambda (name val)
-               (ecase (second val)
-                 (:no-mod
-                  (push name no-mod-names))
-                 (:modified
-                  (push name mod-names))
-                 (:deleted
-                  (push name deleted-names))
-                 (:new
-                  (push name new-names ))))
+               (let ((n-name (string-upcase name)))
+                 (ecase (second val)
+                   (:no-mod
+                    (push n-name no-mod-names))
+                   (:modified
+                    (push n-name mod-names))
+                   (:deleted
+                    (push n-name deleted-names))
+                   (:new
+                    (push n-name new-names )))))
              names-ht)
     (alexandria:alist-hash-table
      `((:no-mod .
-        ,(reverse no-mod-names))
+                ,(reverse no-mod-names))
        (:modified .
-        ,(reverse mod-names))
+                  ,(reverse mod-names))
        (:deleted .
-        ,(reverse deleted-names))
+                 ,(reverse deleted-names))
        (:new .
-        ,(reverse new-names)))
+             ,(reverse new-names)))
      :test #'equal)))

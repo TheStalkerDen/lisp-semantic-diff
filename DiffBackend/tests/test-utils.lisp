@@ -87,7 +87,7 @@
   (with-slots (elements) obj
     (conv-for-cmp-test elements)))
 
-(defmethod conv-for-cmp-test ((obj lexem-wrapper-node))
+(defmethod conv-for-cmp-test ((obj atom-node))
   (with-slots (diff-status) obj
     (if (eq diff-status :same)
         :<el>

@@ -2,13 +2,9 @@
     (:nicknames :parser)
   (:use :cl :diff-backend/lexer
         :diff-backend/utils)
-  (:import-from :alexandria
-   :eswitch)
   (:export #:parser))
 
 (in-package :diff-backend/parser)
-
-(declaim (optimize safety))
 
 (defvar *lexems-rest* nil
   "Stores rest part of lexems")
@@ -24,10 +20,9 @@
       :initarg :error-lex-id)))
 
 (defun next-lexem ()
-  (progn
-    (setf *cur-lex* (first *lexems-rest*))
-    (setf *lexems-rest* (rest *lexems-rest*))
-    *cur-lex*))
+  (setf *cur-lex* (first *lexems-rest*))
+  (setf *lexems-rest* (rest *lexems-rest*))
+  *cur-lex*)
 
 (defun throw-error (error-text error-lex)
   (throw 'parser-start
@@ -42,30 +37,39 @@
                 :error-lex-id (id error-lex)))))
 
 (defun parser (lexems)
-  (let ((*lexems-rest* lexems)
-        (s-expr-l))
+  (let ((*lexems-rest* lexems))
     (catch 'parser-start
-      (loop :while *lexems-rest*
-            :do (push (s-expr-rule (next-lexem)) s-expr-l))
-      `(:top () ,@(reverse s-expr-l)))))
+      (top-rule))))
 
-(defun s-expr-rule (lex)
-  (ecase (lexem-type lex)
+(defun top-rule ()
+  (let (s-expr-l)
+    (loop :while *lexems-rest*
+          :do (push (s-expr-rule) s-expr-l))
+    `(:top () ,@(reverse s-expr-l))))
+
+(defun s-expr-rule (&optional lex)
+  (ecase (lexem-type (or lex (next-lexem)))
     ((:integer :symbol :string)
-     `(:atom () ,lex))
+     (atom-rule *cur-lex*))
     ((:left-parent)
-     (list-rule lex))
+     (list-rule *cur-lex*))
     ((:quote)
-     (let ((next-lex (next-lexem)))
-       (when (or (null next-lex)
-                 (eq (lexem-type next-lex) :right-parent))
-         (throw-error "no s-expr after '" lex))
-       `(:quote
-         ((:coord ,(lexem-line lex)
-                  ,(lexem-column lex)))
-         ,(s-expr-rule next-lex))))
+     (quote-s-expr-rule *cur-lex*))
     ((:right-parent)
-     (throw-error "unmatched close parenthesis" lex))))
+     (throw-error "unmatched close parenthesis" *cur-lex*))))
+
+(defun atom-rule (lex)
+  `(:atom () ,lex))
+
+(defun quote-s-expr-rule (lex)
+  (let ((next-lex (next-lexem)))
+    (when (or (null next-lex)
+              (eq (lexem-type next-lex) :right-parent))
+      (throw-error "no s-expr after '" lex))
+    `(:quote
+      ((:coord ,(lexem-line lex)
+               ,(lexem-column lex)))
+      ,(s-expr-rule next-lex))))
 
 (defun list-rule (left-parent-lexem)
   (do ((s-expr-l nil)
