@@ -27,7 +27,7 @@ void DiffViewer::lineNumbeerAreaPaintEvent(QPaintEvent *event)
 
     while(block.isValid() && top <= event->rect().bottom()){
         if(block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
+            QString number = QString::number(blockNumber + 1 + lineOffset);
             painter.setPen(Qt::red);
             painter.drawText(0,top,lineNumberArea->width(), fontMetrics().height(),Qt::AlignRight, number);
         }
@@ -50,6 +50,16 @@ int DiffViewer::lineNumberAreaWidth()
 
     int space = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9'))* digits;
     return space;
+}
+
+void DiffViewer::setLineOffset(int lineOffset)
+{
+    this->lineOffset = lineOffset;
+}
+
+int DiffViewer::getLineOffset()
+{
+    return lineOffset;
 }
 
 void DiffViewer::resizeEvent(QResizeEvent *e)

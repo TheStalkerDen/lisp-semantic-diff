@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QProcess>
 #include <QMessageBox>
+#include <QScrollBar>
 #include "stats.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -42,35 +43,35 @@ void MainWindow::on_startCompareButton_clicked()
     qDebug() << "Backend is ok!";
     if (QFile::exists("lexer-errors-msgs1.json")) {
         viewerMode = ViewerMode::ErrorsMode;
-        file1ErrorsMode = ErrorsModeTypes::LexicalErrors;
+        global->file1ErrorsMode = ErrorsModeTypes::LexicalErrors;
         errorsMsgs1Array = getJsonDocument("lexer-errors-msgs1.json").array();
     }
     if (QFile::exists("lexer-errors-msgs2.json")) {
         viewerMode = ViewerMode::ErrorsMode;
-        file2ErrorsMode = ErrorsModeTypes::LexicalErrors;
+        global->file2ErrorsMode = ErrorsModeTypes::LexicalErrors;
         errorsMsgs2Array = getJsonDocument("lexer-errors-msgs2.json").array();
     }
 
     if(QFile::exists("parser-error-msg1.json")) {
         viewerMode = ViewerMode::ErrorsMode;
-        file1ErrorsMode = ErrorsModeTypes::SyntaxErrors;
+        global->file1ErrorsMode = ErrorsModeTypes::SyntaxErrors;
         errorsMsgs1Array.append(getJsonDocument("parser-error-msg1.json").object());
     }
 
     if(QFile::exists("parser-error-msg2.json")) {
         viewerMode = ViewerMode::ErrorsMode;
-        file2ErrorsMode = ErrorsModeTypes::SyntaxErrors;
+        global->file2ErrorsMode = ErrorsModeTypes::SyntaxErrors;
         errorsMsgs2Array.append(getJsonDocument("parser-error-msg2.json").object());
     }
 
     if (QFile::exists("semantic-errors-msgs1.json")) {
         viewerMode = ViewerMode::ErrorsMode;
-        file1ErrorsMode = ErrorsModeTypes::SemanticErrors;
+        global->file1ErrorsMode = ErrorsModeTypes::SemanticErrors;
         errorsMsgs1Array = getJsonDocument("semantic-errors-msgs1.json").array();
     }
     if (QFile::exists("semantic-errors-msgs2.json")) {
         viewerMode = ViewerMode::ErrorsMode;
-        file2ErrorsMode = ErrorsModeTypes::SemanticErrors;
+        global->file2ErrorsMode = ErrorsModeTypes::SemanticErrors;
         errorsMsgs2Array = getJsonDocument("semantic-errors-msgs2.json").array();
     }
 
@@ -86,18 +87,23 @@ void MainWindow::on_startCompareButton_clicked()
     }
 
     if(viewerMode == ViewerMode::NormalMode){
-        stats = Stats("stats.json");
+        ui->currentModLabel->setText("Normal Mode");
+        stats = Stats("top-level-stats.json");
         fillStatsTree();
-        synTreeJson1 = getJsonDocument("res1.json");
-        synTreeJson2 = getJsonDocument("res2.json");
+        synTreeJson1 = getJsonDocument("s-exprs-tree1.json");
+        synTreeJson2 = getJsonDocument("s-exprs-tree2.json");
         analyzeSynTree(synTreeJson1,1);
         analyzeSynTree(synTreeJson2,2);
 
-        doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
-        doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
+        currentVal1 = QJsonValue(synTreeJson1.array());
+        currentVal2 = QJsonValue(synTreeJson2.array());
+        doc1.generateHTMLTextFromJson(currentVal1,commentsJsonObj1);
+        doc2.generateHTMLTextFromJson(currentVal2,commentsJsonObj2);
         ui->diffViewer1->appendHtml(doc1.getText());
         ui->diffViewer2->appendHtml(doc2.getText());
     } else if (viewerMode == ViewerMode::ErrorsMode){
+         ui->currentModLabel->setText("Error Mode");
+         ui->currentModLabel->setStyleSheet("background-color:#FF9CA1;");
         if(QFile::exists("lexems1.json")){
             lexemsArrayJson1 = getJsonDocument("lexems1.json").array();
             doc1.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson1,commentsJsonObj1);
@@ -108,28 +114,49 @@ void MainWindow::on_startCompareButton_clicked()
             doc2.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson2,commentsJsonObj2);
             ui->diffViewer2->appendHtml(doc2.getText());
         }
-        if(QFile::exists("res1.json")){
-            synTreeJson1 = getJsonDocument("res1.json");
-            doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
+        if(QFile::exists("s-exprs-tree1.json")){
+            synTreeJson1 = getJsonDocument("s-exprs-tree1.json");
+            currentVal1 = QJsonValue(synTreeJson1.array());
+            doc1.generateHTMLTextFromJson(currentVal1,commentsJsonObj1);
             ui->diffViewer1->appendHtml(doc1.getText());
         }
-        if(QFile::exists("res2.json")){
-            synTreeJson2 = getJsonDocument("res2.json");
-            doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
+        if(QFile::exists("s-exprs-tree2.json")){
+            synTreeJson2 = getJsonDocument("s-exprs-tree2.json");
+            currentVal2 = QJsonValue(synTreeJson2.array());
+            doc2.generateHTMLTextFromJson(currentVal2,commentsJsonObj2);
             ui->diffViewer2->appendHtml(doc2.getText());
         }
-        if(file1ErrorsMode == ErrorsModeTypes::NoErrors){
+        if(global->file1ErrorsMode == ErrorsModeTypes::NoErrors){
             ui->diffViewer1->appendPlainText(getStringFromFile(filepath1));
         }
-        if(file2ErrorsMode == ErrorsModeTypes::NoErrors){
+        if(global->file2ErrorsMode == ErrorsModeTypes::NoErrors){
             ui->diffViewer2->appendPlainText(getStringFromFile(filepath2));
         }
         fillErrorsInfoTree();
     }
     ui->stackedWidget->setCurrentIndex(1);
-    QMenu* actionsMenu = new QMenu();
-    actionsMenu->addAction("Go to main page");
-    ui->menubar->addMenu(actionsMenu);
+    ui->menubar->addMenu("Main menu");
+    ui->filename1Label->setText(file1Name);
+    ui->filename2Label->setText(file2Name);
+
+    if(viewerMode == ViewerMode::ErrorsMode){
+        QString errors_message;
+        switch (global->file1ErrorsMode) {
+            case ErrorsModeTypes::LexicalErrors: errors_message.append(QString("%1 has %2\n").arg(file1Name, "lexical errors")); break;
+            case ErrorsModeTypes::SyntaxErrors: errors_message.append(QString("%1 has %2\n").arg(file1Name, "syntax errors")); break;
+            case ErrorsModeTypes::SemanticErrors: errors_message.append(QString("%1 has %2\n").arg(file1Name, "semantic errors")); break;
+            case ErrorsModeTypes::NoErrors:;
+        }
+        switch (global->file2ErrorsMode) {
+            case ErrorsModeTypes::LexicalErrors: errors_message.append(QString("%1 has %2\n").arg(file2Name, "lexical errors")); break;
+            case ErrorsModeTypes::SyntaxErrors: errors_message.append(QString("%1 has %2\n").arg(file2Name, "syntax errors")); break;
+            case ErrorsModeTypes::SemanticErrors: errors_message.append(QString("%1 has %2\n").arg(file2Name, "semantic errors")); break;
+            case ErrorsModeTypes::NoErrors:;
+        }
+        QMessageBox errors_message_box;
+        errors_message_box.setText(errors_message);
+        errors_message_box.exec();
+    }
 }
 
 void MainWindow::fillStatsTree()
@@ -185,8 +212,8 @@ QTreeWidgetItem* MainWindow::getStatsTreeItem(QSet<QString> identSet, QString cl
 void MainWindow::fillErrorsInfoTree()
 {
     auto& errorsInfoTree = ui->treeWidget;
-    auto* errorsInfoTreeNode1 = getErrorsInfoTreeNode(file1ErrorsMode,errorsMsgs1Array, file1Name,1);
-    auto* errorsInfoTreeNode2 = getErrorsInfoTreeNode(file2ErrorsMode,errorsMsgs2Array, file2Name,2);
+    auto* errorsInfoTreeNode1 = getErrorsInfoTreeNode(global->file1ErrorsMode,errorsMsgs1Array, file1Name,1);
+    auto* errorsInfoTreeNode2 = getErrorsInfoTreeNode(global->file2ErrorsMode,errorsMsgs2Array, file2Name,2);
     if(errorsInfoTreeNode1){
         errorsInfoTree->addTopLevelItem(errorsInfoTreeNode1);
     }
@@ -245,9 +272,9 @@ void MainWindow::cleanOldJsonFiles()
     QFile::remove("parser-error-msg2.json");
     QFile::remove("semantic-errors-msgs1.json");
     QFile::remove("semantic-errors-msgs2.json");
-    QFile::remove("res1.json");
-    QFile::remove("res2.json");
-    QFile::remove("stats.json");
+    QFile::remove("s-exprs-tree1.json");
+    QFile::remove("s-exprs-tree2.json");
+    QFile::remove("top-level-stats.json");
     QFile::remove("moved-s-exprs-info.json");
 }
 
@@ -282,18 +309,24 @@ bool MainWindow::isTextCursorInsideMovedSexpr(int line, int column, int viewerNu
 {
     QJsonArray start_coord_sexpr;
     QJsonArray end_coord_sexpr;
+    int abs_line;
     for(int i = 0; i < movedSexrpInfoArray.size(); i++){
         const auto& movedSexprInfo = movedSexrpInfoArray[i].toObject();
         if(viewerNum == 1){
             start_coord_sexpr = movedSexprInfo["startCoordOfId1"].toArray();
             end_coord_sexpr = movedSexprInfo["endCoordOfId1"].toArray();
+            abs_line = line + ui->diffViewer1->getLineOffset();
         } else if(viewerNum == 2){
             start_coord_sexpr = movedSexprInfo["startCoordOfId2"].toArray();
             end_coord_sexpr = movedSexprInfo["endCoordOfId2"].toArray();
+            abs_line = line + ui->diffViewer2->getLineOffset();
         }
 
-       if(line >= start_coord_sexpr[0].toInt() && line <= end_coord_sexpr[0].toInt()
+       if(abs_line >= start_coord_sexpr[0].toInt() && abs_line <= end_coord_sexpr[0].toInt()
           && column >= start_coord_sexpr[1].toInt() && column <= end_coord_sexpr[1].toInt()){
+          if(global->current_selected_moved_ids[0] == movedSexprInfo["sExprId1"].toInt()){
+              return false;
+          }
           global->current_selected_moved_ids[0] = movedSexprInfo["sExprId1"].toInt();
           global->current_selected_moved_ids[1] = movedSexprInfo["sExprId2"].toInt();
           return true;
@@ -304,6 +337,27 @@ bool MainWindow::isTextCursorInsideMovedSexpr(int line, int column, int viewerNu
     return false;
 }
 
+void MainWindow::handleCursorPositionChanged(DiffViewer* diffviewer, int num)
+{
+    int line = diffviewer->textCursor().blockNumber() + 1;
+    int column = diffviewer->textCursor().positionInBlock() + 1;
+    int abs_pos = diffviewer->textCursor().position();
+
+    if(isTextCursorInsideMovedSexpr(line, column, num)){
+        int val1 = ui->diffViewer1->verticalScrollBar()->value();
+        ui->diffViewer1->clear();
+        int val2 = ui->diffViewer2->verticalScrollBar()->value();
+        ui->diffViewer2->clear();
+        doc1.generateHTMLTextFromJson(currentVal1,commentsJsonObj1, selectionMode == SeletionMode::All);
+        ui->diffViewer1->appendHtml(doc1.getText());
+        ui->diffViewer1->verticalScrollBar()->setValue(val1);
+        //ui->diffViewer1->textCursor().setPosition(abs_pos);
+        doc2.generateHTMLTextFromJson(currentVal2,commentsJsonObj2, selectionMode == SeletionMode::All);
+        ui->diffViewer2->appendHtml(doc2.getText());
+        ui->diffViewer2->verticalScrollBar()->setValue(val2);
+    }
+}
+
 void MainWindow::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
 {
     if(item->data(0,Qt::ItemDataRole::UserRole).type() == QVariant::Type::String){
@@ -311,22 +365,32 @@ void MainWindow::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
         QString text = item->text(0);
         QString itemData = item->data(0,Qt::ItemDataRole::UserRole).toString();
         if(itemData == "all"){
-            doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()), commentsJsonObj1);
-            doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()), commentsJsonObj2);
+            selectionMode = SeletionMode::All;
+            currentVal1 = QJsonValue(synTreeJson1.array());
+            currentVal2 = QJsonValue(synTreeJson2.array());
+            doc1.generateHTMLTextFromJson(currentVal1, commentsJsonObj1);
+            doc2.generateHTMLTextFromJson(currentVal2, commentsJsonObj2);
             ui->diffViewer1->clear();
             ui->diffViewer2->clear();
+            ui->diffViewer1->setLineOffset(0);
+            ui->diffViewer2->setLineOffset(0);
             ui->diffViewer1->appendHtml(doc1.getText());
             ui->diffViewer2->appendHtml(doc2.getText());
         } else if (itemData == "identName") {
+            selectionMode = SeletionMode::DefSExpr;
             qDebug()  << item->parent()->indexOfChild(item);
             if(nameToObj1.contains(text)){
-                doc1.generateHTMLTextFromJson(QJsonValue(nameToObj1[text]), commentsJsonObj1,false);
+                currentVal1 = QJsonValue(nameToObj1[text]);
+                doc1.generateHTMLTextFromJson(currentVal1, commentsJsonObj1,false);
                 ui->diffViewer1->clear();
+                ui->diffViewer1->setLineOffset(doc1.getLineOffset());
                 ui->diffViewer1->appendHtml(doc1.getText());
             }
             if(nameToObj2.contains(text)){
-                doc2.generateHTMLTextFromJson(QJsonValue(nameToObj2[text]), commentsJsonObj2,false);
+                currentVal2 = QJsonValue(nameToObj2[text]);
+                doc2.generateHTMLTextFromJson(currentVal2, commentsJsonObj2,false);
                 ui->diffViewer2->clear();
+                ui->diffViewer2->setLineOffset(doc2.getLineOffset());
                 ui->diffViewer2->appendHtml(doc2.getText());
             }
             if(nameToObj1.contains(text) && !nameToObj2.contains(text)){
@@ -338,15 +402,29 @@ void MainWindow::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
             int pos = item->parent()->indexOfChild(item);
             int docNum = item->parent()->data(0,Qt::ItemDataRole::UserRole).toInt();
             if(docNum == 1){
-                global->selected_error_lex_id1 = errorsMsgs1Array[pos].toObject()["errorLexId"].toInt();
-                doc1.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson1,commentsJsonObj1);
-                ui->diffViewer1->clear();
-                ui->diffViewer1->appendHtml(doc1.getText());
+                if(global->file1ErrorsMode != ErrorsModeTypes::SemanticErrors){
+                    global->selected_error_lex_id1 = errorsMsgs1Array[pos].toObject()["errorLexId"].toInt();
+                    doc1.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson1,commentsJsonObj1);
+                    ui->diffViewer1->clear();
+                    ui->diffViewer1->appendHtml(doc1.getText());
+                }else {
+                    global->selected_error_node_id1 = errorsMsgs1Array[pos].toObject()["errorNodeId"].toInt();
+                    doc1.generateHTMLTextFromJson(currentVal1,commentsJsonObj1);
+                    ui->diffViewer1->clear();
+                    ui->diffViewer1->appendHtml(doc1.getText());
+                }
             } else if(docNum == 2) {
-                global->selected_error_lex_id2 = errorsMsgs2Array[pos].toObject()["errorLexId"].toInt();
-                doc2.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson2,commentsJsonObj2);
-                ui->diffViewer2->clear();
-                ui->diffViewer2->appendHtml(doc2.getText());
+                if(global->file2ErrorsMode != ErrorsModeTypes::SemanticErrors){
+                    global->selected_error_lex_id2 = errorsMsgs2Array[pos].toObject()["errorLexId"].toInt();
+                    doc2.generateHTMLTextFromLexemsArrayJson(lexemsArrayJson2,commentsJsonObj2);
+                    ui->diffViewer2->clear();
+                    ui->diffViewer2->appendHtml(doc2.getText());
+                }else {
+                    global->selected_error_node_id2 = errorsMsgs2Array[pos].toObject()["errorNode"].toInt();
+                    doc2.generateHTMLTextFromJson(currentVal2,commentsJsonObj2);
+                    ui->diffViewer2->clear();
+                    ui->diffViewer2->appendHtml(doc2.getText());
+                }
             }
         }
     }
@@ -379,24 +457,11 @@ void MainWindow::on_actiontool_creator_triggered()
 
 void MainWindow::on_diffViewer1_cursorPositionChanged()
 {
-    int line = ui->diffViewer1->textCursor().blockNumber() + 1;
-    int column = ui->diffViewer1->textCursor().positionInBlock() + 1;
-    int abs_pos = ui->diffViewer1->textCursor().position();
-    if(was_recreated_text == false && isTextCursorInsideMovedSexpr(line, column, 1)){
-        ui->diffViewer1->clear();
-        ui->diffViewer2->clear();
-        doc1.generateHTMLTextFromJson(QJsonValue(synTreeJson1.array()),commentsJsonObj1);
-        ui->diffViewer1->appendHtml(doc1.getText());
-        ui->diffViewer1->textCursor().setPosition(abs_pos);
-        doc2.generateHTMLTextFromJson(QJsonValue(synTreeJson2.array()),commentsJsonObj2);
-        ui->diffViewer2->appendHtml(doc2.getText());
-        was_recreated_text = true;
-    }
+    handleCursorPositionChanged(ui->diffViewer1,1);
 }
 
 void MainWindow::on_diffViewer2_cursorPositionChanged()
 {
-    qDebug() << ui->diffViewer2->textCursor().blockNumber();
-    qDebug() << ui->diffViewer2->textCursor().positionInBlock();
+    handleCursorPositionChanged(ui->diffViewer2,2);
 }
 

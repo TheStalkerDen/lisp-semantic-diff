@@ -11,6 +11,8 @@ public:
 
     void lineNumbeerAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
+    void setLineOffset(int lineOffset);
+    int getLineOffset();
 
 protected:
 
@@ -22,6 +24,7 @@ private slots:
 
 private:
     QWidget *lineNumberArea;
+    int lineOffset = 0;
 };
 
 #endif // DIFFVIEWER_H

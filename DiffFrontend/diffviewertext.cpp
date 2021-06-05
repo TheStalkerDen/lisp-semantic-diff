@@ -21,14 +21,22 @@ void DiffViewerText::generateHTMLTextFromLexemsArrayJson(QJsonArray lexems, QJso
 {
     global->currentTextVersion = forTextVersion;
     text.clear();
-    DiffViewerTextBuilder builder;
+    DiffViewerTextBuilder builder(&lineOffset);
     text = builder.generateTextFromLexemsArray(lexems,comments);
+}
+
+int DiffViewerText::getLineOffset()
+{
+    if(lineOffset > 0){
+        return lineOffset -1;
+    }
+    return 0;
 }
 
 void DiffViewerText::generateHTMLTextFromJson(QJsonValue jsonVal,QJsonObject comments, bool isTopLevel)
 {
     global->currentTextVersion = forTextVersion;
     text.clear();
-    DiffViewerTextBuilder builder;
+    DiffViewerTextBuilder builder(&lineOffset);
     text = builder.generateText(jsonVal,comments, isTopLevel);
 }

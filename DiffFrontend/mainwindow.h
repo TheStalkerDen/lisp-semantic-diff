@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "diffviewer.h"
 #include "diffviewertext.h"
 #include "global.h"
 
@@ -16,7 +17,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 enum class ViewerMode {NormalMode, ErrorsMode};
-enum class ErrorsModeTypes {LexicalErrors, SyntaxErrors, SemanticErrors, NoErrors};
+enum class SeletionMode {All, DefSExpr};
 
 class MainWindow : public QMainWindow
 {
@@ -60,6 +61,7 @@ private:
     QJsonArray movedSexrpInfoArray;
 
     bool isTextCursorInsideMovedSexpr(int line, int column, int viewerNum);
+    void handleCursorPositionChanged(DiffViewer* diffviewer, int num);
 
     Global* global;
 
@@ -80,8 +82,12 @@ private:
     QJsonArray errorsMsgs2Array;
 
     ViewerMode viewerMode = ViewerMode::NormalMode;
-    ErrorsModeTypes file1ErrorsMode = ErrorsModeTypes::NoErrors;
-    ErrorsModeTypes file2ErrorsMode = ErrorsModeTypes::NoErrors;
+    SeletionMode selectionMode = SeletionMode::All;
+
+    QJsonValue currentVal1;
+    QJsonValue currentVal2;
+
+    int ignoring_count = 0;
 
     bool was_recreated_text = false;
 

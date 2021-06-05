@@ -1,7 +1,7 @@
 #ifndef DIFFVIEWERTEXT_H
 #define DIFFVIEWERTEXT_H
 
-#include <Global.h>
+#include "global.h"
 #include <QJsonDocument>
 #include <QObject>
 
@@ -13,6 +13,7 @@ public:
     QString getText();
     void generateHTMLTextFromJson(QJsonValue obj, QJsonObject comments, bool isTopLevel = true);
     void generateHTMLTextFromLexemsArrayJson(QJsonArray lexems, QJsonObject comments);
+    int getLineOffset();
 private:
 
     Global* global;
@@ -21,6 +22,10 @@ private:
     int forTextVersion;
 
     QString text;
+
+    int lineOffset = 0;
+
+
 
 
 signals:
