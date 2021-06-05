@@ -64,12 +64,12 @@
         :collect (conv-for-cmp-test el)))
 
 (defmethod conv-for-cmp-test ((obj defun-node))
-  (with-slots (diff-status keyword-lexem function-name parameters-list body-forms)
+  (with-slots (diff-status keyword-atom function-name parameters-list body-forms)
       obj
     (remove nil
             `(,(unless (eq diff-status :same)
                  diff-status)
-              ,(conv-for-cmp-test keyword-lexem)
+              ,(conv-for-cmp-test keyword-atom)
               ,(conv-for-cmp-test function-name)
               (,@(conv-for-cmp-test parameters-list))
               ,@(conv-for-cmp-test body-forms))
@@ -92,3 +92,35 @@
     (if (eq diff-status :same)
         :<el>
         `(,diff-status :<el>))))
+
+(defmethod conv-for-cmp-test ((obj let-node))
+  (with-slots (diff-status keyword-atom bindings body-forms)
+      obj
+    (remove nil
+            `(,(unless (eq diff-status :same)
+                 diff-status)
+              ,(conv-for-cmp-test keyword-atom)
+              (,@(conv-for-cmp-test bindings))
+              ,@(conv-for-cmp-test body-forms))
+            :count 1 :end 1)))
+
+(defmethod conv-for-cmp-test ((obj let-binding-node))
+  (with-slots (diff-status var-atom value-s-expr)
+      obj
+    (remove nil
+            `(,(unless (eq diff-status :same)
+                 diff-status)
+              ,(conv-for-cmp-test var-atom)
+              ,(when value-s-expr
+                 (conv-for-cmp-test value-s-expr))))))
+
+(defmethod conv-for-cmp-test ((obj if-node))
+  (with-slots (diff-status test-s-expr then-s-expr else-s-expr)
+      obj
+    (remove nil
+            `(,(unless (eq diff-status :same)
+                 diff-status)
+              ,(conv-for-cmp-test test-s-expr)
+              ,(conv-for-cmp-test then-s-expr)
+              ,(when else-s-expr
+                 (conv-for-cmp-test else-s-expr))))))

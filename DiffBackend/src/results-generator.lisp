@@ -88,10 +88,49 @@
     (add-to-ht "par-info" (alexandria:alist-hash-table
                            (parenthesis-info obj) :test #'equal))
     (add-to-ht "elems" (list*
-                        (gener-res-object (keyword-lexem obj))
+                        (gener-res-object (keyword-atom obj))
                         (gener-res-object (function-name obj))
                         (gener-res-object (parameters-list obj))
                         (gener-res-object (body-forms obj))))))
+
+(defmethod gener-res-object ((obj defparameter-node))
+  (with-ht
+    (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
+    (add-to-ht "diff-st" (diff-status obj))
+    (add-to-ht "props" (alexandria:alist-hash-table
+                        `((:isTopLevel . ,(string-upcase (get-lexem-name (parameter-name obj)))))))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
+    (add-to-ht "elems" (list
+                        (gener-res-object (keyword-atom obj))
+                        (gener-res-object (parameter-name obj))
+                        (gener-res-object (value-s-expr obj))))))
+
+(defmethod gener-res-object ((obj let-node))
+  (with-ht
+    (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
+    (add-to-ht "diff-st" (diff-status obj))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
+    (add-to-ht "elems" (list*
+                        (gener-res-object (keyword-atom obj))
+                        (gener-res-object (bindings obj))
+                        (gener-res-object (body-forms obj))))))
+
+(defmethod gener-res-object ((obj let-binding-node))
+  (with-ht
+    (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
+    (add-to-ht "diff-st" (diff-status obj))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
+    (add-to-ht "elems" (remove nil
+                               (list
+                                (gener-res-object (var-atom obj))
+                                (when (value-s-expr obj)
+                                  (gener-res-object (value-s-expr obj))))))))
 
 (defmethod gener-res-object ((obj vector))
   (map 'list #'gener-res-object obj))
@@ -121,7 +160,7 @@
 
 (defmethod gener-res-object ((obj atom-node))
   (with-ht
-    (add-to-ht "type" "lexem")
+    (add-to-ht "type" "atom")
     (add-to-ht "id" (id obj))
     (add-to-ht "diff-st" (diff-status obj))
     (let ((lex (lexem-info obj)))
@@ -139,3 +178,25 @@
     (add-to-ht "lex-type" (lexem-type obj))
     (add-to-ht "string" (lexem-string obj))))
 
+(defmethod gener-res-object ((obj quote-node))
+  (with-ht
+      (add-to-ht "type" "quote")
+    (add-to-ht "id" (id obj))
+    (add-to-ht "diff-st" (diff-status obj))
+    (add-to-ht "quote-coord" (quote-coord obj))
+    (add-to-ht "q-s-expr" (gener-res-object (q-s-expr obj)))))
+
+(defmethod gener-res-object ((obj if-node))
+  (with-ht
+    (add-to-ht "type" "list")
+    (add-to-ht "id" (id obj))
+    (add-to-ht "diff-st" (diff-status obj))
+    (add-to-ht "par-info" (alexandria:alist-hash-table
+                           (parenthesis-info obj) :test #'equal))
+    (add-to-ht "elems"
+               (remove nil (list
+                            (gener-res-object (keyword-atom obj))
+                            (gener-res-object (test-s-expr obj))
+                            (gener-res-object (then-s-expr obj))
+                            (when (else-s-expr obj)
+                              (gener-res-object (else-s-expr obj))))))))

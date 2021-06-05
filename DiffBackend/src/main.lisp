@@ -105,17 +105,17 @@
                                                          :if-exists :supersede)
       (get-semantic-errors-msgs-json *semantic-errors-msgs-2* stream)))
   (when res1
-    (with-open-file (stream "res1.json" :direction :output)
+    (with-open-file (stream "s-exprs-tree1.json" :direction :output)
       :if-exists :supersede
       (get-json-res res1 stream)))
   (when res2
-    (with-open-file (stream "res2.json" :direction :output
+    (with-open-file (stream "s-exprs-tree2.json" :direction :output
                                         :if-exists :supersede)
       (get-json-res res2 stream)))
   (when (and res1 res2
              (not *semantic-errors-msgs-1*)
              (not *semantic-errors-msgs-2*))
-    (with-open-file (stream "stats.json" :direction :output
+    (with-open-file (stream "top-level-stats.json" :direction :output
                                          :if-exists :supersede)
       (get-stats-res stream))
     (when *moved-s-exprs-list*
@@ -190,13 +190,16 @@
     (compare-two-str str1 str2)))
 
 (defun compare-two-str (str1 str2)
-  (let ((ast-tree-1 (get-abstract-sem-tree-from-string str1 1))
-        (ast-tree-2 (get-abstract-sem-tree-from-string str2 2)))
-    (when (and ast-tree-1 ast-tree-2
+  (let ((ast-1 (get-abstract-sem-tree-from-string str1 1))
+        (ast-2 (get-abstract-sem-tree-from-string str2 2)))
+    (when (and ast-1 ast-2
                (not *semantic-errors-msgs-1*)
                (not *semantic-errors-msgs-2*))
-      (setf *moved-s-exprs-list* (compare-results)))
-    (values ast-tree-1 ast-tree-2)))
+      (multiple-value-bind (m-ast-1 m-ast-2 moved-s-exprs-list)
+          (start-asts-comparing ast-1 ast-2)
+        (setf *moved-s-exprs-list* moved-s-exprs-list)
+        (return-from compare-two-str (values m-ast-1 m-ast-2))))
+    (values ast-1 ast-2)))
 
 (defun get-abstract-sem-tree-from-string (str cur-file)
   (multiple-value-bind (res-lexems comments lex-errors)

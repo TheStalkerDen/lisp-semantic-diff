@@ -16,22 +16,22 @@
 
 (defun init-stats ()
   (setf *file-ver-1-stats* (make-hash-table :test #'eq))
-  (setf *file-ver-2-stats* (make-hash-table :test #'eq))
-  (setf (gethash :defuns *file-ver-1-stats*)
-        (make-hash-table :test #'equal))
-  (setf (gethash :defuns *file-ver-2-stats*)
-        (make-hash-table :test #'equal)))
+  (setf *file-ver-2-stats* (make-hash-table :test #'eq)))
 
 (defun add-to-stats (name obj &key stat-name file-ver)
-  (ecase stat-name
-    ((:defuns)
-     (alexandria:eswitch (file-ver)
-       (1
-        (setf (gethash name (gethash :defuns *file-ver-1-stats*))
-              `(,obj :no-mod)))
-       (2
-        (setf (gethash name (gethash :defuns *file-ver-2-stats*))
-              `(,obj :no-mod)))))))
+  (alexandria:eswitch (file-ver)
+    (1
+     (unless (gethash stat-name *file-ver-1-stats*)
+       (setf (gethash stat-name *file-ver-1-stats*)
+             (make-hash-table :test #'equal)))
+     (setf (gethash name (gethash stat-name *file-ver-1-stats*))
+           `(,obj :no-mod)))
+    (2
+     (unless (gethash stat-name *file-ver-2-stats*)
+       (setf (gethash stat-name *file-ver-2-stats*)
+             (make-hash-table :test #'equal)))
+     (setf (gethash name (gethash stat-name *file-ver-2-stats*))
+           `(,obj :no-mod)))))
 
 (defun get-stats (ver)
   (alexandria:eswitch (ver)

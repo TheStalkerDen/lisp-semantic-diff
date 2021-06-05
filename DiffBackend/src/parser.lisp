@@ -25,6 +25,7 @@
   *cur-lex*)
 
 (defun throw-error (error-text error-lex)
+  (setf (lexem-type error-lex) :error-lexem)
   (throw 'parser-start
        (values nil
                (make-instance

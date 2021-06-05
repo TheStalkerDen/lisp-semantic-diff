@@ -4,10 +4,14 @@
         :diff-backend/lexer)
   (:export #:get-lexem-name
            #:simple-atom-node
-           #:parm-atom
-           #:decl-var-atom
-           #:func-name-atom
-           #:keyword-atom))
+           #:parm-atom-node
+           #:decl-var-atom-node
+           #:func-name-atom-node
+           #:keyword-atom-node
+           #:q-atom-node
+           #:parm-list-node
+           #:bindings-list-node
+           #:q-list-node))
 
 (in-package :diff-backend/nodes)
 
@@ -35,8 +39,8 @@
                      :initarg :parenthesis-info)))
 
 (defclass* keyword-mixin ()
-  ((keyword-lexem :accessor keyword-lexem
-                  :initarg :keyword-lexem)))
+    ((keyword-atom :accessor keyword-atom
+                   :initarg :keyword-atom)))
 
 (defclass* spec-length-mixin ()
   ((spec-length :accessor spec-length
@@ -87,13 +91,15 @@
 
 (defclass simple-atom-node (atom-node) ())
 
-(defclass parm-atom (atom-node) ())
+(defclass parm-atom-node (atom-node) ())
 
-(defclass decl-var-atom (atom-node) ())
+(defclass decl-var-atom-node (atom-node) ())
 
-(defclass func-name-atom (atom-node) ())
+(defclass func-name-atom-node (atom-node) ())
 
-(defclass keyword-atom (atom-node) ())
+(defclass keyword-atom-node (atom-node) ())
+
+(defclass q-atom-node (atom-node) ())
 
 ;;;DEFUN-NODE
 (define-node defun-node (parenthesis-mixin keyword-mixin)
@@ -107,11 +113,11 @@
                :initarg :body-forms)))
 
 (defmethod calculate-spec-length ((obj defun-node))
-  (with-slots (function-name parameters-list body-forms keyword-lexem) obj
+  (with-slots (function-name parameters-list body-forms keyword-atom) obj
     (+ (1+ (calculate-spec-length function-name))
        (1+ (calculate-spec-length parameters-list))
        (1+ (calculate-spec-length body-forms))
-       (1+ (calculate-spec-length keyword-lexem))
+       (1+ (calculate-spec-length keyword-atom))
          2)))
 
 ;;;FUNCTION-CALL-NODE
@@ -137,6 +143,12 @@
   ((elements :accessor elements
              :initarg :elements)))
 
+(defclass parm-list-node (list-node) ())
+
+(defclass bindings-list-node (list-node) ())
+
+(defclass q-list-node (list-node) ())
+
 (defmethod calculate-spec-length ((obj list-node))
   (with-slots (elements) obj
     (+ 2 (calculate-spec-length elements))))
@@ -148,3 +160,75 @@
 (defmethod calculate-spec-length ((obj vector))
   (1- (loop :for el :across obj
             :sum (1+ (calculate-spec-length el)))))
+
+;;;QUOTE-NODE
+(define-node quote-node ()
+    ((quote-coord :accessor quote-coord
+                  :initarg :quote-coord)
+     (q-s-expr :accessor q-s-expr
+               :initarg :q-s-expr)))
+
+(defmethod calculate-spec-length ((obj quote-node))
+  (with-slots (q-s-expr) obj
+    (+ 1 (calculate-spec-length q-s-expr))))
+
+;;;LET-NODE
+(define-node let-node (parenthesis-mixin keyword-mixin)
+    ((bindings :accessor bindings
+               :initarg :bindings)
+     (body-forms :accessor body-forms
+                 :initarg :body-forms)))
+
+(defmethod calculate-spec-length ((obj let-node))
+  (with-slots (keyword-atom bindings body-forms)
+      obj
+    (+ 2
+       (1+ (calculate-spec-length keyword-atom))
+       (1+ (calculate-spec-length bindings))
+       (calculate-spec-length body-forms))))
+
+;;;let-binding-node
+(define-node let-binding-node (parenthesis-mixin)
+    ((var-atom :accessor var-atom
+               :initarg :var-atom)
+     (value-s-expr :accessor value-s-expr
+                   :initarg :value-s-expr)))
+
+(defmethod calculate-spec-length ((obj let-binding-node))
+  (with-slots (var-atom value-s-expr)
+      obj
+    (+ 2 (1+ (calculate-spec-length var-atom))
+       (if value-s-expr
+           (calculate-spec-length value-s-expr)
+           0))))
+
+;;;defparameter-node
+(define-node defparameter-node (parenthesis-mixin keyword-mixin)
+  ((parameter-name :accessor parameter-name
+                   :initarg :parameter-name)
+   (value-s-expr :accessor value-s-expr
+                 :initarg :value-s-expr)))
+
+(defmethod calculate-spec-length ((obj defparameter-node))
+  (with-slots (keyword-atom parameter-name value-s-expr)
+      obj
+    (+ 2 (1+ (calculate-spec-length keyword-atom))
+       (1+ (calculate-spec-length parameter-name))
+       (calculate-spec-length value-s-expr))))
+
+;;;if-node
+(define-node if-node (parenthesis-mixin keyword-mixin)
+    ((test-s-expr :accessor test-s-expr
+                  :initarg :test-s-expr)
+     (then-s-expr :accessor then-s-expr
+                  :initarg :then-s-expr)
+     (else-s-expr :accessor else-s-expr
+                  :initarg :else-s-expr)))
+
+(defmethod calculate-spec-length ((obj if-node))
+  (with-slots (keyword-atom test-s-expr then-s-expr else-s-expr)
+      obj
+      (+ 2 (1+ (calculate-spec-length keyword-atom))
+         (1+ (calculate-spec-length test-s-expr))
+         (1+ (calculate-spec-length then-s-expr))
+         (calculate-spec-length else-s-expr))))

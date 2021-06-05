@@ -29,7 +29,7 @@
          (*semanitc-errors-list*)
          (res-ast (match-top syn-tree)))
     (values res-ast
-            *semanitc-errors-list*)))
+            (nreverse *semanitc-errors-list*))))
 
 (defun get-id ()
   (prog1 *current-id*
@@ -64,7 +64,15 @@
          (cond
            ((string= normal-symbol-string "DEFUN")
             (match-defun first-s-expr annotations others))
-           (t (match-function-call first-s-expr annotations others))))))))
+           ((string= normal-symbol-string "DEFPARAMETER")
+            (match-defparameter first-s-expr annotations others))
+           ((string= normal-symbol-string "LET")
+            (match-let first-s-expr annotations others))
+           ((string= normal-symbol-string "IF")
+            (match-if first-s-expr annotations others))
+           (t (match-function-call first-s-expr annotations others)))))
+      ((:quote)
+       (match-quote term-el)))))
 
 (defun make-ill-node-and-push-to-errors-list (error-text ill-term)
   (let ((ill-node (make-illegal-node ill-term :is-top? t))
@@ -128,8 +136,8 @@
                (res-obj
                  (make-instance
                   'defun-node
-                  :keyword-lexem (make-atom-node keyword-term :atom-type 'keyword-atom)
-                  :func-name (make-atom-node func-name :atom-type 'func-name-atom)
+                  :keyword-atom (make-atom-node keyword-term :atom-type 'keyword-atom-node)
+                  :func-name (make-atom-node func-name :atom-type 'func-name-atom-node)
                   :parenthesis-info par-info
                   :parameters-list (make-list-node parms)
                   :body-forms (get-form*-vector forms)
@@ -145,6 +153,131 @@
        "incorrect defun"
        `(:list ,par-info ,keyword-term ,@elements)))))
 
+(defun match-defparameter (keyword-term par-info elements)
+  (handler-case
+      (destructuring-bind (parameter-name value-s-expr)
+          elements
+        (let* ((node-id (get-id))
+               (res-obj
+                 (make-instance
+                  'defparameter-node
+                  :keyword-atom (make-atom-node keyword-term :atom-type 'keyword-atom-node)
+                  :parameter-name (make-atom-node parameter-name :atom-type 'func-name-atom-node)
+                  :value-s-expr (match-s-expr value-s-expr)
+                  :parenthesis-info par-info
+                  :id node-id)))
+          (add-to-stats (get-symbol-atom-normal-string-form parameter-name)
+                        res-obj
+                        :stat-name :defparameters
+                        :file-ver *current-file-ver*)
+          res-obj))
+    (error (c)
+      (declare (ignore c))
+      (make-ill-node-and-push-to-errors-list
+       "incorrect defparameter"
+       `(:list ,par-info ,keyword-term ,@elements)))))
+
+(defun match-let (keyword-term par-info elements)
+  (handler-case
+      (destructuring-bind (let-bindings &rest forms)
+          elements
+        (let* ((node-id (get-id))
+               (res-obj
+                 (make-instance
+                  'let-node
+                  :keyword-atom (make-atom-node keyword-term :atom-type 'keyword-atom-node)
+                  :bindings (match-let-bindings let-bindings)
+                  :parenthesis-info par-info
+                  :body-forms (get-form*-vector forms)
+                  :id node-id)))
+          res-obj))
+    (error (c)
+                                        ;(declare (ignore c))
+      (print c)
+      (make-ill-node-and-push-to-errors-list
+       "incorrect let"
+       `(:list ,par-info ,keyword-term ,@elements)))))
+
+(defun match-if (keyword-term par-info elements)
+  (handler-case
+      (destructuring-bind (test-s-expr then-s-expr &optional else-s-expr)
+          elements
+        (let* ((node-id (get-id))
+               (res-obj
+                 (make-instance
+                  'if-node
+                  :keyword-atom (make-atom-node keyword-term :atom-type 'keyword-atom-node)
+                  :test-s-expr (match-s-expr test-s-expr)
+                  :then-s-expr (match-s-expr then-s-expr)
+                  :else-s-expr (when else-s-expr (match-s-expr else-s-expr))
+                  :parenthesis-info par-info
+                  :id node-id)))
+          res-obj))
+    (error (c)
+                                        ;(declare (ignore c))
+      (print c)
+      (make-ill-node-and-push-to-errors-list
+       "incorrect if"
+       `(:list ,par-info ,keyword-term ,@elements)))))
+
+(defun match-let-bindings (bindings-term)
+  (destructuring-bind (term-type par-info &rest bindings)
+      bindings-term
+    (if (eq term-type :list)
+        (let ((node-id (get-id)))
+          (make-instance
+           'bindings-list-node
+           :id node-id
+           :parenthesis-info par-info
+           :elements (when bindings
+                       (get-let-bindings-vector
+                        bindings))))
+        (make-ill-node-and-push-to-errors-list
+         "incorrect let bindings"
+         bindings-term))))
+
+(defun get-let-bindings-vector (bindings)
+  (map 'vector #'match-let-binding bindings))
+
+(defun match-let-binding (binding)
+  (destructuring-bind (term-type par-info &rest others)
+      binding
+    (cond
+      ((eq term-type :atom)
+       (unless (eq (get-atom-term-type binding)
+                   :symbol)
+         (return-from match-let-binding
+           (make-ill-node-and-push-to-errors-list
+            "incorrect let binding (only symbol can be used as local var)"
+            binding)))
+       (make-instance
+        'decl-var-atom-node
+        :id (get-id)
+        :lexem-info (first others)))
+      ((eq term-type :list)
+       (let ((len (length others)))
+         (unless (or (= len 1)
+                     (= len 2))
+           (return-from match-let-binding
+             (make-ill-node-and-push-to-errors-list
+              "malformed let binding"
+              binding)))
+         (let ((var (first others))
+               (value (second others)))
+           (unless (eq (get-term-type var) :atom)
+             (return-from match-let-binding
+               (make-ill-node-and-push-to-errors-list
+                "malformed let binding"
+                binding)))
+           (let ((node-id (get-id)))
+             (make-instance
+              'let-binding-node
+              :id node-id
+              :parenthesis-info par-info
+              :var-atom (make-atom-node var :atom-type 'decl-var-atom-node)
+              :value-s-expr (when value
+                              (match-s-expr value))))))))))
+
 (defun make-list-node (list-element)
   (when (eq (first list-element) :list)
     (let ((node-id (get-id)))
@@ -156,7 +289,32 @@
 (defun match-function-call (func-name-term par-info func-args)
   (let ((node-id (get-id)))
     (make-instance 'function-call-node
-                   :func-lexem (make-atom-node func-name-term :atom-type 'func-name-atom)
+                   :func-lexem (make-atom-node func-name-term :atom-type 'func-name-atom-node)
                    :parenthesis-info par-info
                    :func-arg-forms (get-form*-vector func-args)
                    :id node-id)))
+
+(defun match-quote (term)
+  (let ((node-id (get-id)))
+    (make-instance 'quote-node
+                   :id node-id
+                   :quote-coord (rest (first (second term)))
+                   :q-s-expr (make-q-data (third term)))))
+
+(defun make-q-data (term)
+  (destructuring-bind (type annotations &rest others)
+      term
+    (ecase type
+      ((:atom)
+       (make-atom-node term :atom-type 'q-atom-node))
+      ((:list)
+       (make-q-list annotations others))
+      ((:quote)
+       (match-quote term)))))
+
+(defun make-q-list (par-info list-elements)
+  (let ((node-id (get-id)))
+    (make-instance 'q-list-node
+                   :id node-id
+                   :parenthesis-info par-info
+                   :elements (map 'vector #'make-q-data list-elements))))

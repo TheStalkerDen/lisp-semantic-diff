@@ -22,3 +22,16 @@
   `((:defuns
         ("a" "b" "c"))))
 
+(def-stats-test defparameter.1
+  "(defparameter a 1)"
+  `((:defparameters
+        ("a"))))
+
+(def-stats-test mixed.1
+  "(defparameter a 1)
+(defun b () 2) "
+  `((:defparameters
+        ("a"))
+    (:defuns
+        ("b"))))
+
