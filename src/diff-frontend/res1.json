@@ -1,0 +1,45 @@
+[
+    {
+        "type": "list",
+        "diff-st": "same",
+        "par-info": {"lparenCoord":[1,1],"rparenCoord":[1,14]},
+        "elems": [
+            {
+                "type": "lexem",
+                "diff-st": "same",
+                "lexem-coord": [
+                    1,
+                    2
+                ],
+                "lex-type": "symbol",
+                "string": "defun"
+            },
+            {
+                "type": "lexem",
+                "diff-st": "same",
+                "lexem-coord": [
+                    1,
+                    8
+                ],
+                "lex-type": "symbol",
+                "string": "d"
+            },
+            {
+                "type": "list",
+                "diff-st": "same",
+                "par-info": {"lparenCoord":[1,10],"rparenCoord":[1,11]},
+                "elems": null
+            },
+            {
+                "type": "lexem",
+                "diff-st": "deleted",
+                "lexem-coord": [
+                    1,
+                    13
+                ],
+                "lex-type": "symbol",
+                "string": "k"
+            }
+        ]
+    }
+]
