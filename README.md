@@ -8,7 +8,10 @@ It is a project of lisp semantic diff. It was started as the main part of my bac
 
 # Dependencies
 - QT5 libs and qmake
-- sbcl and asdf
+- sbcl, asdf and quicklisp
+
+# How to build
+... Coming soon ...
 
 # Screenshots
 ## Start window
