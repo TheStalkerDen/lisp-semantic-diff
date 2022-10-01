@@ -297,7 +297,7 @@
     :parenthesis-info `((:lparen-coord 1 1)
                         (:rparen-coord 1 14))
     :parameters-list (make-instance
-                      'list-node
+                      'parm-list-node
                       :parenthesis-info `((:lparen-coord 1 10)
                                           (:rparen-coord 1 11))
                       :elements nil
@@ -340,7 +340,7 @@
     :parenthesis-info `((:lparen-coord 1 1)
                         (:rparen-coord 1 15))
     :parameters-list (make-instance
-                      'list-node
+                      'parm-list-node
                       :parenthesis-info `((:lparen-coord 1 10)
                                           (:rparen-coord 1 12))
                       :elements (vector (make-instance
@@ -391,7 +391,7 @@
     :parenthesis-info `((:lparen-coord 1 1)
                         (:rparen-coord 1 21))
     :parameters-list (make-instance
-                      'list-node
+                      'parm-list-node
                       :parenthesis-info `((:lparen-coord 1 10)
                                           (:rparen-coord 1 12))
                       :elements (vector

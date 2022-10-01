@@ -139,7 +139,7 @@
                   :keyword-atom (make-atom-node keyword-term :atom-type 'keyword-atom-node)
                   :func-name (make-atom-node func-name :atom-type 'func-name-atom-node)
                   :parenthesis-info par-info
-                  :parameters-list (make-list-node parms)
+                  :parameters-list (make-parm-list-node parms)
                   :body-forms (get-form*-vector forms)
                   :id node-id)))
           (add-to-stats (get-symbol-atom-normal-string-form func-name)
@@ -148,7 +148,7 @@
                         :file-ver *current-file-ver*)
           res-obj))
     (error (c)
-      (declare (ignore c))
+      (print c)
       (make-ill-node-and-push-to-errors-list
        "incorrect defun"
        `(:list ,par-info ,keyword-term ,@elements)))))
@@ -278,10 +278,10 @@
               :value-s-expr (when value
                               (match-s-expr value))))))))))
 
-(defun make-list-node (list-element)
+(defun make-parm-list-node (list-element)
   (when (eq (first list-element) :list)
     (let ((node-id (get-id)))
-      (make-instance 'list-node
+      (make-instance 'parm-list-node
                      :parenthesis-info (second list-element)
                      :elements (get-form*-vector (rest (rest list-element)))
                      :id node-id))))

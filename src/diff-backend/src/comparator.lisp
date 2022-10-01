@@ -95,17 +95,17 @@
 (defparameter *maybe-match-list* nil)
 
 (defun add-to-maybe-match-list (obj1 obj2 nodes-prefix)
-  (format t "~%Add to *maybe-match-list*~%")
-  (format t "obj1 = ~S~%" obj1)
-  (format t "obj2 = ~S~%" obj2)
-  (format t "nodes-prefix = ~S~%" nodes-prefix)
+  (log:debug t "~%Add to *maybe-match-list*~%")
+  (log:debug t "obj1 = ~S~%" obj1)
+  (log:debug t "obj2 = ~S~%" obj2)
+  (log:debug t "nodes-prefix = ~S~%" nodes-prefix)
   (set-diff-status obj1 :maybe-match :no-push t)
   (set-diff-status obj2 :maybe-match :no-push t)
   (push (list obj1 obj2 nodes-prefix)
         *maybe-match-list*))
 
 (defun add-to-moved-s-exprs-list (node1 node2)
-  (format t "~%Add to moved-s-exprs-list~%")
+  (log:debug t "~%Add to moved-s-exprs-list~%")
   (let ((first-and-last-coord1 (get-first-and-last-coord node1))
         (first-and-last-coord2 (get-first-and-last-coord node2)))
     (push (make-instance
@@ -120,8 +120,8 @@
 
 (defun maybe-issue-resolver ()
   (let (*maybe-match-list*)
-    (format t "~%Start *maybe-deleted-nodes* = ~S~%" *maybe-deleted-nodes*)
-    (format t "Start *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
+    (log:debug "Initially *maybe-deleted-nodes* = ~S~%" *maybe-deleted-nodes*)
+    (log:debug "Initially *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
     (loop
       :while (and *maybe-deleted-nodes*
                   *maybe-new-nodes*)
@@ -129,36 +129,36 @@
          (dolist (maybe-deleted *maybe-deleted-nodes*)
            (dolist (maybe-new *maybe-new-nodes*)
              (acond
-               ((first (gethash (cons (id maybe-deleted)
-                                      (id maybe-new))
-                                *cmp-memoization-table*))
-                (format t "~%memoiz-work~%")
-                (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-                (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-                (remove-from-memoiz-table :first-id (id maybe-deleted)
-                                          :second-id (id maybe-new))
-                (add-to-moved-s-exprs-list maybe-deleted maybe-new)
-                (return))
-               ((compare maybe-deleted maybe-new)
-                (format t "~%was successfully compare~%")
-                (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-                (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-                (add-to-moved-s-exprs-list maybe-deleted maybe-new)
-                (return))
-               (t
-                (format t "~%try traverse-and-compare~%")
-                (when (traverse-and-compare
-                         maybe-deleted
-                         maybe-new
-                         (list (id maybe-new)))
-                    (return)))))
+              ((first (gethash (cons (id maybe-deleted)
+                                     (id maybe-new))
+                               *cmp-memoization-table*))
+               (log:debug "~%memoiz-work~%")
+               (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
+               (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
+               (remove-from-memoiz-table :first-id (id maybe-deleted)
+                                         :second-id (id maybe-new))
+               (add-to-moved-s-exprs-list maybe-deleted maybe-new)
+               (return))
+              ((compare maybe-deleted maybe-new)
+               (log:debug "~%was successfully compare~%")
+               (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
+               (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
+               (add-to-moved-s-exprs-list maybe-deleted maybe-new)
+               (return))
+              (t
+               (log:debug "~%try traverse-and-compare~%")
+               (when (traverse-and-compare
+                      maybe-deleted
+                      maybe-new
+                      (list (id maybe-new)))
+                 (return)))))
            (setf *maybe-new-nodes*
                  (remove-if
                   (lambda (el)
                     (when (listp (diff-status el))
                       (eq (first (diff-status el)) :moved)))
                   *maybe-new-nodes*))
-           (format t "~%New *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*))
+           (log:debug "~%New *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*))
          (setf *maybe-deleted-nodes*
                (remove-if
                 (lambda (el)
@@ -177,8 +177,8 @@
                       (when (eq (diff-status node) :maybe-deleted)
                         (set-diff-status node :deleted)))
                     maybe-deleted-nodes))))
-           (format t "~%New *maybe-deleted-nodes* = ~S~%~%" *maybe-deleted-nodes*)))
-    (format t "~%*maybe-match-list* = ~S~%~%" *maybe-match-list*)
+           (log:debug "~%New *maybe-deleted-nodes* = ~S~%~%" *maybe-deleted-nodes*)))
+    (log:debug "~%*maybe-match-list* = ~S~%~%" *maybe-match-list*)
     (let ((maybe-match-list *maybe-match-list*))
       (dolist (el maybe-match-list)
         (let ((obj1 (first el))
@@ -227,10 +227,10 @@ Out4 - diff-patch for obj2"))
     (error "Unsupported traverse-and-compare for ~S" trav-obj)))
 
 (defmethod traverse-and-compare :around (obj trav-obj nodes-prefix)
-  (format t "In traverse-and-compare for type ~S:~%" (type-of trav-obj))
-  (format t "obj = ~S~%"  obj)
-  (format t "trav-obj = ~S~%" trav-obj)
-  (format t "nodes-prefix = ~S~%~%" nodes-prefix)
+  (log:debug "In traverse-and-compare for type ~S:~%" (type-of trav-obj))
+  (log:debug "obj = ~S~%"  obj)
+  (log:debug "trav-obj = ~S~%" trav-obj)
+  (log:debug "nodes-prefix = ~S~%~%" nodes-prefix)
   (call-next-method)) 
 
 (defgeneric colapse-node (obj)

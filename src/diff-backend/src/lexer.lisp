@@ -112,6 +112,7 @@
 (defparameter *cur-id* 0)
 
 (defun lexer (file-str)
+  (log:trace "Start lexer")
   (let ((*cur-id* 0)
         (stream (make-string-input-stream file-str))
         (lexems)
@@ -293,6 +294,7 @@
        (go COMMON)
      END
        (return))
+    (log:trace "End lexer")
     (values (reverse lexems)
             comments-table
             (reverse lex-errors))))

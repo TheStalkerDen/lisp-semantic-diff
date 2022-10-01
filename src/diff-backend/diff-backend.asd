@@ -2,7 +2,7 @@
   :version "0.1.0"
   :author "Denys Yermolenko"
   :license ""
-  :depends-on (:anaphora :alexandria :str :cl-json :trivia)
+  :depends-on (:anaphora :alexandria :str :cl-json :trivia :log4cl)
   :components ((:module "src"
                 :components
                 ((:file "utils")
@@ -13,7 +13,8 @@
                  (:file "abstract-sem-tree-generator" :depends-on ("lexer" "nodes"))
                  (:file "comparator" :depends-on ("nodes"))
                  (:file "results-generator" :depends-on ("nodes"))
-                 (:file "main" :depends-on ("lexer" "parser" "abstract-sem-tree-generator" "comparator")))))
+                 (:file "main" :depends-on ("lexer" "parser" "abstract-sem-tree-generator" "comparator"))
+                 (:file "experiments" :depends-on ("lexer" "parser" "abstract-sem-tree-generator" "comparator")))))
   :description ""
   :in-order-to ((test-op (test-op "diff-backend/tests"))))
 
