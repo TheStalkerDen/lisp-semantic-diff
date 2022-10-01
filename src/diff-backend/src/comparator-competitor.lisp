@@ -1,21 +1,15 @@
-(uiop:define-package :diff-backend/comparator
-    (:nicknames :comparator)
+(uiop:define-package :diff-backend/comparator-competitor
+    (:nicknames :comparator-competitor)
   (:use :cl :diff-backend/nodes
         :diff-backend/statistics
    :anaphora)
   (:import-from :alexandria
                 #:mappend)
-  (:import-from :diff-backend/comparator-new
-                :start-new-version-of-asts-comparing)
-  (:import-from :diff-backend/comparator-competitor
-                :start-competitor-version-of-asts-comparing)
-  (:export #:start-asts-comparing))
+  (:export #:start-competitor-version-of-asts-comparing))
 
-(in-package :diff-backend/comparator)
+(in-package :diff-backend/comparator-competitor)
 
 (declaim (optimize (debug 3)))
-
-(defparameter *current-method* 'new)
 
 (defparameter *maybe-deleted-nodes* nil)
 
@@ -41,14 +35,8 @@
 
 (defparameter *moved-s-exprs-list* nil)
 
-(defun start-asts-comparing (ast-1 ast-2)
-  (ecase *current-method*
-    (old (start-old-version-of-asts-comparing ast-1 ast-2))
-    (new (start-new-version-of-asts-comparing ast-1 ast-2))
-    (competitor (start-competitor-version-of-asts-comparing ast-1 ast-2))))
-
-(defun start-old-version-of-asts-comparing (ast-1 ast-2)
-  (log:trace "Start old-version of asts comparting")
+(defun start-competitor-version-of-asts-comparing (ast-1 ast-2)
+  (log:trace "competitor version starting")
   (let ((def-s-exprs-stats-1 (get-stats 1))
         (def-s-exprs-stats-2 (get-stats 2))
         (*moved-s-exprs-list*))
