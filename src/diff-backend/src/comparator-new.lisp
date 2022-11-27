@@ -36,6 +36,11 @@
 (defparameter *moved-s-exprs-list* nil)
 
 (defun start-new-version-of-asts-comparing (ast-1 ast-2)
+  (calculate-hash ast-1)
+  (calculate-hash ast-2)
+  (calculate-node-counts ast-1)
+  (calculate-node-counts ast-2)
+ ; (break)
   (log:trace "new version of asts comparing starting")
   (let ((def-s-exprs-stats-1 (get-stats 1))
         (def-s-exprs-stats-2 (get-stats 2))
@@ -90,13 +95,16 @@
           (and (stringp obj1)
                (stringp obj2))
           (equal (type-of obj1) (type-of obj2)))
-      (if (typecase obj1 
+      (if (typecase obj1
+            (atom-node (compare obj1 obj2))
             (standard-object
              (loop :for slot :in (closer-mop:class-slots (class-of obj1))
                    :for slot-name = (closer-mop:slot-definition-name slot)
                    :always (or (and (null (slot-boundp obj1 slot-name))
                                     (null (slot-boundp obj2 slot-name)))
                                (eq slot-name 'id)
+                               (eq slot-name 'parenthesis-info)
+                               (eq slot-name 'diff-status)
                                (if (deep-equal (slot-value obj1 slot-name)
                                                (slot-value obj2 slot-name))
                                    t
@@ -132,6 +140,30 @@
              (log:debug "Type: ~A obj2: ~A ~%" (type-of obj2) obj2)
              nil)))
 
+
+(defun get-hash->nodes-ht (tree)
+  (declare (optimize (debug 3)))
+  (let ((hash->nodes-ht (make-hash-table)))
+    (labels
+        ((%paste-in-ht (obj)
+           (aif (gethash (hash obj) hash->nodes-ht)
+                (setf (gethash (hash obj) hash->nodes-ht)
+                      (cons obj it))
+                (setf (gethash (hash obj) hash->nodes-ht)
+                      (list obj))))
+         (%traverse-and-fill (subobj)
+           (typecase subobj
+             (standard-object
+              (loop  :for slot :in (closer-mop:class-slots (class-of subobj))
+                     :for slot-name = (closer-mop:slot-definition-name slot)
+                     :do (if (eq slot-name 'hash)
+                             (%paste-in-ht subobj)
+                             (%traverse-and-fill (slot-value subobj slot-name)))))
+             (list (mapc #'%traverse-and-fill subobj))
+             (vector (loop :for obj :across subobj :do (%traverse-and-fill obj))))))
+      (%traverse-and-fill tree))
+    hash->nodes-ht))
+
 (defun compare-def-nodes (obj1 obj2)
   (let ((*maybe-deleted-nodes* nil)
         (*maybe-new-nodes* nil)
@@ -145,6 +177,17 @@
       (compare obj1 obj2)
       (maybe-issue-resolver))
     *was-modified*))
+
+(defun remove-from-memoiz-table (&key first-id second-id)
+  (maphash (lambda (key val)
+             (declare (ignore val))
+             (when (and first-id
+                        (= first-id (car key)))
+               (remhash key *cmp-memoization-table*))
+             (when (and second-id
+                        (= second-id (cdr key)))
+               (remhash key *cmp-memoization-table*)))
+           *cmp-memoization-table*))
 
 (defparameter *maybe-match-list* nil)
 
@@ -170,80 +213,40 @@
            :end-coord-of-id1 (second first-and-last-coord1)
            :start-coord-of-id2 (first first-and-last-coord2)
            :end-coord-of-id2 (second first-and-last-coord2))
-          *moved-s-exprs-list*)) )
+          *moved-s-exprs-list*)))
+
+(defun find-in-hash->nodes-ht (pattern ht)
+  (awhen (gethash (hash pattern) ht)
+    (dolist (o it)
+      (when (and (not (listp (diff-status o)))
+                 (deep-equal o pattern))
+        (log:debug "Was found ~A" pattern)
+        (set-diff-status o `(:moved ,(id pattern)))
+        (set-diff-status pattern `(:moved ,(id o)))
+        (add-to-moved-s-exprs-list pattern o)
+        (return-from find-in-hash->nodes-ht t)))))
 
 (defun maybe-issue-resolver ()
-  (let (*maybe-match-list*)
-    (log:debug "Initially *maybe-deleted-nodes* = ~S~%" *maybe-deleted-nodes*)
-    (log:debug "Initially *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
+  (log:debug "Initially *maybe-deleted-nodes* = ~S~%" *maybe-deleted-nodes*)
+  (log:debug "Initially *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
+  (unless (and *maybe-deleted-nodes* *maybe-new-nodes*)
+    (log:debug "No reason for starting this algo~%"))
+  (let ((*maybe-match-list*)
+        (ht (get-hash->nodes-ht *maybe-new-nodes*)))
+                                        ;(log:debug "~S" ht)
+    ;(break)
     (loop
-      :while (and *maybe-deleted-nodes*
-                  *maybe-new-nodes*)
+      :while *maybe-deleted-nodes*
       :do
-         (dolist (maybe-deleted *maybe-deleted-nodes*)
-           (dolist (maybe-new *maybe-new-nodes*)
-             (acond
-              ((first (gethash (cons (id maybe-deleted)
-                                     (id maybe-new))
-                               *cmp-memoization-table*))
-               (log:debug "~%memoiz-work~%")
-               (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-               (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-               (remove-from-memoiz-table :first-id (id maybe-deleted)
-                                         :second-id (id maybe-new))
-               (add-to-moved-s-exprs-list maybe-deleted maybe-new)
-               (return))
-              ((compare maybe-deleted maybe-new)
-               (log:debug "~%was successfully compare~%")
-               (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-               (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-               (add-to-moved-s-exprs-list maybe-deleted maybe-new)
-               (return))
-              (t
-               (log:debug "~%try traverse-and-compare~%")
-               (when (traverse-and-compare
-                      maybe-deleted
-                      maybe-new
-                      (list (id maybe-new)))
-                 (return)))))
-           (setf *maybe-new-nodes*
-                 (remove-if
-                  (lambda (el)
-                    (when (listp (diff-status el))
-                      (eq (first (diff-status el)) :moved)))
-                  *maybe-new-nodes*))
-           (log:debug "~%New *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*))
-         (setf *maybe-deleted-nodes*
-               (remove-if
-                (lambda (el)
-                  (or (eq (diff-status el) :maybe-match)
-                      (when (listp (diff-status el))
-                        (eq (first (diff-status el)) :moved))))
-                *maybe-deleted-nodes*))
-         (let ((maybe-deleted-nodes *maybe-deleted-nodes*))
-           (setf *maybe-deleted-nodes*
-                 (remove
-                  nil
-                  (mappend
-                   #'colapse-node
-                   (mapc
-                    (lambda (node)
-                      (when (eq (diff-status node) :maybe-deleted)
-                        (set-diff-status node :deleted)))
-                    maybe-deleted-nodes))))
-           (log:debug "~%New *maybe-deleted-nodes* = ~S~%~%" *maybe-deleted-nodes*)))
-    (log:debug "~%*maybe-match-list* = ~S~%~%" *maybe-match-list*)
-    (let ((maybe-match-list *maybe-match-list*))
-      (dolist (el maybe-match-list)
-        (let ((obj1 (first el))
-              (obj2 (second el)))
-          (set-diff-status obj1 `(:moved ,(id obj2)))
-          (set-diff-status obj2 `(:moved ,(id obj1)))
-          (add-to-moved-s-exprs-list obj1 obj2)))) 
-    (dolist (del-obj *maybe-deleted-nodes*)
-      (set-diff-status del-obj :deleted))
-    (dolist (new-obj *maybe-new-nodes*)
-      (set-diff-status new-obj :new))))
+         (let* ((sorted (sort *maybe-deleted-nodes* #'> :key #'node-counts))
+                (pattern-obj (first sorted)))
+           ;(break)
+           (if (find-in-hash->nodes-ht pattern-obj ht)
+               (setf *maybe-deleted-nodes*
+                     (rest *maybe-deleted-nodes*))
+               (setf *maybe-deleted-nodes*
+                     (nconc (decay-node pattern-obj)
+                            (rest *maybe-deleted-nodes*))))))))
 
 
 (defgeneric compare (obj1 obj2)
@@ -274,33 +277,11 @@ Out4 - diff-patch for obj2"))
        ,(lexer:lexem-column lex-info))
       (,(lexer:lexem-line lex-info)
        ,(+ (lexer:lexem-column lex-info)
-           (length (lexer:lexem-string lex-info)))))))
+           (length (lexer:lexem-string lex-info))))))) 
 
-(defgeneric traverse-and-compare (obj trav-obj nodes-prefix)
-  (:method (obj trav-obj nodes-prefix)
-    (error "Unsupported traverse-and-compare for ~S" trav-obj)))
-
-(defmethod traverse-and-compare :around (obj trav-obj nodes-prefix)
-  (log:debug "In traverse-and-compare for type ~S:~%" (type-of trav-obj))
-  (log:debug "obj = ~S~%"  obj)
-  (log:debug "trav-obj = ~S~%" trav-obj)
-  (log:debug "nodes-prefix = ~S~%~%" nodes-prefix)
-  (call-next-method)) 
-
-(defgeneric colapse-node (obj)
+(defgeneric decay-node (obj)
   (:method (obj)
     (error "can't collapse-node for ~S" obj)))
-
-(defun remove-from-memoiz-table (&key first-id second-id)
-  (maphash (lambda (key val)
-             (declare (ignore val))
-             (when (and first-id
-                        (= first-id (car key)))
-               (remhash key *cmp-memoization-table*))
-             (when (and second-id
-                        (= second-id (cdr key)))
-               (remhash key *cmp-memoization-table*)))
-           *cmp-memoization-table*))
 
 (defgeneric set-diff-status (obj status &key no-push)
   (:method (obj1 obj2 &key no-push)
@@ -311,9 +292,9 @@ Out4 - diff-patch for obj2"))
 (defmethod set-diff-status ((obj main-fields-mixin) status &key no-push)
   (setf (diff-status obj) status)
   (unless no-push
-    (cond ((eq status :maybe-new)
+    (cond ((eq status :new)
            (push obj *maybe-new-nodes*))
-          ((eq status :maybe-deleted)
+          ((eq status :deleted)
            (push obj *maybe-deleted-nodes*))))
   (setf *was-modified* t))
 
@@ -329,16 +310,16 @@ Out4 - diff-patch for obj2"))
        (parameters-list obj2))
     (declare (ignore eq-leaf-counts))
     (unless is-equal
-      (apply-diff-patch (parameters-list obj1) diff1 :maybe-deleted)
-      (apply-diff-patch (parameters-list obj2) diff2 :maybe-new)))
+      (apply-diff-patch (parameters-list obj1) diff1 :deleted)
+      (apply-diff-patch (parameters-list obj2) diff2 :new)))
   (multiple-value-bind (is-equal eq-leaf-counts diff1 diff2)
       (compare
        (body-forms obj1)
        (body-forms obj2))
     (declare (ignore eq-leaf-counts))
     (unless is-equal
-      (apply-diff-patch (body-forms obj1) diff1 :maybe-deleted)
-      (apply-diff-patch (body-forms obj2) diff2 :maybe-new)))
+      (apply-diff-patch (body-forms obj1) diff1 :deleted)
+      (apply-diff-patch (body-forms obj2) diff2 :new)))
   nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -518,16 +499,6 @@ Out4 - diff-patch for obj2"))
                (%backtrack middle-els-1 middle-els-2)))))))
     (values is-equal eq-leaf-counts diff-patch1 diff-patch2)))
 
-(defmethod traverse-and-compare (obj (vec vector) nodes-prefix)
-  (loop :for el :across vec
-        :do (unless (eq (diff-status el) :maybe-match)
-              (when (compare obj el)
-                (add-to-maybe-match-list obj el nodes-prefix)
-                (return-from traverse-and-compare t))
-              (when (traverse-and-compare obj el (cons (id el) nodes-prefix))
-                (return-from traverse-and-compare t))))
-  nil)
-
 (defmethod apply-diff-patch ((obj vector) diff-patch diff-status)
   (loop :for el :across obj
         :do
@@ -578,10 +549,7 @@ Out4 - diff-patch for obj2"))
         (set-diff-status (func-arg-forms obj) diff-status)
         (apply-diff-patch (func-arg-forms obj) (rest it) diff-status))))
 
-(defmethod traverse-and-compare (obj (trav-obj function-call-node) nodes-prefix)
-  (traverse-and-compare obj (func-arg-forms trav-obj) nodes-prefix))
-
-(defmethod colapse-node ((node function-call-node))
+(defmethod decay-node ((node function-call-node))
    (map 'list #'identity (func-arg-forms node)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -598,10 +566,7 @@ Out4 - diff-patch for obj2"))
 (defmethod apply-diff-patch ((obj list-node) diff-patch diff-status)
   (apply-diff-patch (elements obj) diff-patch diff-status))
 
-(defmethod traverse-and-compare (obj (trav-obj list-node) nodes-prefix)
-  (traverse-and-compare obj (elements trav-obj) nodes-prefix))
-
-(defmethod colapse-node ((node list-node))
+(defmethod decay-node ((node list-node))
   (map 'list #'identity (elements node)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -624,11 +589,7 @@ Out4 - diff-patch for obj2"))
            (return-from compare (values t 1))))))
   (return-from compare (values nil 0 (id obj1) (id obj2))))
 
-(defmethod traverse-and-compare (obj (trav-obj atom-node) nodes-prefix)
-  (declare (ignore nodes-prefix obj trav-obj))
-  nil)
-
-(defmethod colapse-node ((node atom-node))
+(defmethod decay-node ((node atom-node))
   nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -636,7 +597,7 @@ Out4 - diff-patch for obj2"))
 (defmethod compare ((obj1 quote-node) (obj2 quote-node))
   (compare (q-s-expr obj1) (q-s-expr obj2)))
 
-(defmethod colapse-node ((node quote-node))
+(defmethod decay-node ((node quote-node))
   (list (q-s-expr node)))
 
 (defmethod apply-diff-patch ((obj quote-node) diff-patch diff-status)
@@ -687,7 +648,7 @@ Out4 - diff-patch for obj2"))
           (setf is-equal (and is-equal is=)))))
     (values is-equal equal-leaf-nodes-count diff-patch1 diff-patch2)))
 
-(defmethod colapse-node ((node let-node))
+(defmethod decay-node ((node let-node))
   (list* (bindings node)
          (body-forms node)))
 
@@ -700,16 +661,6 @@ Out4 - diff-patch for obj2"))
     (if (eq t (rest it))
         (set-diff-status (body-forms obj) diff-status)
         (apply-diff-patch (body-forms obj) (rest it) diff-status))))
-
-(defmethod traverse-and-compare (obj (trav-obj let-node) nodes-prefix)
-  (unless (eq (diff-status trav-obj) :maybe-match)
-    (or (when (compare obj (bindings trav-obj))
-          (add-to-maybe-match-list obj (bindings trav-obj) nodes-prefix)
-          t)
-        (traverse-and-compare obj
-                              (bindings trav-obj)
-                              (cons (id (bindings trav-obj)) nodes-prefix))
-        (traverse-and-compare obj (body-forms trav-obj) nodes-prefix))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -762,7 +713,7 @@ Out4 - diff-patch for obj2"))
          (setf is-equal (and is-equal is=)))))
     (values is-equal equal-leaf-nodes-count diff-patch1 diff-patch2)))
 
-(defmethod colapse-node ((node let-binding-node))
+(defmethod decay-node ((node let-binding-node))
   (list (var-atom node)
         (value-s-expr node)))
 
@@ -771,20 +722,6 @@ Out4 - diff-patch for obj2"))
     (if (eq t (rest it))
         (set-diff-status (value-s-expr obj) diff-status)
         (apply-diff-patch (value-s-expr obj) (rest it) diff-status))))
-
-(defmethod traverse-and-compare (obj (trav-obj let-binding-node) nodes-prefix)
-  (unless (eq (diff-status trav-obj) :maybe-match)
-    (or (when (compare obj (var-atom trav-obj))
-          (add-to-maybe-match-list obj (var-atom trav-obj) nodes-prefix)
-          t)
-        (when (value-s-expr trav-obj)
-          (when (compare obj (value-s-expr trav-obj))
-            (add-to-maybe-match-list obj (value-s-expr trav-obj) nodes-prefix)
-            t)
-          (traverse-and-compare obj
-                                (value-s-expr trav-obj)
-                                (cons (id (value-s-expr trav-obj))
-                                      nodes-prefix))))))
 
 ;;;defparameter
 (defmethod compare ((obj1 defparameter-node) (obj2 defparameter-node))
@@ -877,12 +814,6 @@ Out4 - diff-patch for obj2"))
              (setf is-equal (and is-equal is=)))))))
     (values is-equal equal-leaf-nodes-count diff-patch1 diff-patch2)))
 
-(defmethod collapse-node ((node if-node))
-  (list
-   (test-s-expr node)
-   (then-s-expr node)
-   (else-s-expr node)))
-
 (defmethod apply-diff-patch ((obj if-node) diff-patch diff-status)
   (awhen (assoc :then-s-expr diff-patch)
     (if (eq t (rest it))
@@ -896,25 +827,3 @@ Out4 - diff-patch for obj2"))
     (if (eq t (rest it))
         (set-diff-status (else-s-expr obj) diff-status)
         (apply-diff-patch (else-s-expr obj) (rest it) diff-status))))
-
-(defmethod traverse-and-compare (obj (trav-obj if-node) nodes-prefix)
-  (unless (eq (diff-status trav-obj) :maybe-match)
-    (or (when (compare obj (test-s-expr trav-obj))
-          (add-to-maybe-match-list obj (test-s-expr trav-obj) nodes-prefix)
-          t)
-        (traverse-and-compare obj
-                              (test-s-expr trav-obj)
-                              nodes-prefix)
-        (when (compare obj (then-s-expr trav-obj))
-          (add-to-maybe-match-list obj (then-s-expr trav-obj) nodes-prefix)
-          t)
-        (traverse-and-compare obj
-                              (then-s-expr trav-obj)
-                              nodes-prefix)
-        (when (else-s-expr trav-obj)
-          (when (compare obj (else-s-expr trav-obj))
-            (add-to-maybe-match-list obj (else-s-expr trav-obj) nodes-prefix)
-            t)
-          (traverse-and-compare obj
-                                (else-s-expr trav-obj)
-                                nodes-prefix)))))

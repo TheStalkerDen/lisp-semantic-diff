@@ -11,7 +11,10 @@
            #:q-atom-node
            #:parm-list-node
            #:bindings-list-node
-           #:q-list-node))
+           #:q-list-node
+           #:calculate-hash
+           #:calculate-node-counts
+           #:calculate-spec-length))
 
 (in-package :diff-backend/nodes)
 
@@ -33,7 +36,6 @@
        ,(when class-option
           class-option))))
 
-
 (defclass* main-fields-mixin ()
     ((diff-status :accessor diff-status
                   :initarg :diff-status
@@ -50,9 +52,10 @@
     ((keyword-atom :accessor keyword-atom
                    :initarg :keyword-atom)))
 
+
 (defclass* spec-length-mixin ()
-  ((spec-length :accessor spec-length
-                :initarg :spec-length)))
+    ((spec-length :accessor spec-length
+                  :initarg :spec-length)))
 
 (defclass* hash-mixin ()
   ((hash :accessor hash
@@ -77,32 +80,32 @@
 (defmethod calculate-spec-length :around ((obj spec-length-mixin))
   (if (slot-boundp obj 'spec-length)
       (slot-value obj 'spec-length)
-      (call-next-method)))
+      (setf (slot-value obj 'spec-length) (call-next-method))))
 
-(defmethod calcualate-hash :around ((obj hash-mixin))
-  (if (slot-boundp obj 'hash-mixin)
-      (slot-value obj 'hash-mixin)
-      (call-next-method)))
+(defmethod calculate-hash :around ((obj hash-mixin))
+  (if (slot-boundp obj 'hash)
+      (slot-value obj 'hash)
+      (setf (slot-value obj 'hash) (call-next-method))))
 
 (defmethod calculate-node-counts :around ((obj node-counts-mixin))
   (if (slot-boundp obj 'node-counts)
       (slot-value obj 'node-counts)
-      (call-next-method)))
+      (setf (slot-value obj 'node-counts) (call-next-method))))
 
-(defmethod initialize-instance :after ((obj spec-length-mixin) &key)
-  (with-slots (spec-length) obj
-    (unless (slot-boundp obj 'spec-length)
-      (setf spec-length (calculate-spec-length obj)))))
+;; (defmethod initialize-instance :after ((obj spec-length-mixin) &key)
+;;   (with-slots (spec-length) obj
+;;     (unless (slot-boundp obj 'spec-length)
+;;       (setf spec-length (calculate-spec-length obj)))))
 
-(defmethod initialize-instance :after ((obj hash-mixin) &key)
-  (with-slots (hash) obj
-    (unless (slot-boundp obj 'hash)
-      (setf hash (calculate-hash obj)))))
+;; (defmethod initialize-instance :after ((obj hash-mixin) &key)
+;;   (with-slots (hash) obj
+;;     (unless (slot-boundp obj 'hash)
+;;       (setf hash (calculate-hash obj)))))
 
-(defmethod initialize-instance :after ((obj node-counts-mixin) &key)
-  (with-slots (node-counts) obj
-    (unless (slot-boundp obj 'node-counts)
-      (setf node-counts (calculate-node-counts obj)))))
+;; (defmethod initialize-instance :after ((obj node-counts-mixin) &key)
+;;   (with-slots (node-counts) obj
+;;     (unless (slot-boundp obj 'node-counts)
+;;       (setf node-counts (calculate-node-counts obj)))))
 
 (defmethod calculate-hash ((obj symbol))
   (sxhash obj))
@@ -434,3 +437,4 @@
        (calculate-node-counts test-s-expr)
        (calculate-node-counts then-s-expr)
        (calculate-node-counts else-s-expr))))
+

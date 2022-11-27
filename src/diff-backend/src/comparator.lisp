@@ -9,13 +9,14 @@
                 :start-new-version-of-asts-comparing)
   (:import-from :diff-backend/comparator-competitor
                 :start-competitor-version-of-asts-comparing)
-  (:export #:start-asts-comparing))
+  (:export #:start-asts-comparing
+           *current-method*))
 
 (in-package :diff-backend/comparator)
 
 (declaim (optimize (debug 3)))
 
-(defparameter *current-method* 'new)
+(defparameter *current-method* 'old)
 
 (defparameter *maybe-deleted-nodes* nil)
 
@@ -41,14 +42,69 @@
 
 (defparameter *moved-s-exprs-list* nil)
 
+(defun deep-equal (obj1 obj2)
+  (declare (optimize (speed 1)))
+  ;(log:info "Deep was called!")
+  (if (or (and (integerp obj1)
+               (integerp obj2))
+          (and (stringp obj1)
+               (stringp obj2))
+          (equal (type-of obj1) (type-of obj2)))
+      (if (typecase obj1
+            (atom-node (compare obj1 obj2))
+            (standard-object
+             (loop :for slot :in (closer-mop:class-slots (class-of obj1))
+                   :for slot-name = (closer-mop:slot-definition-name slot)
+                   :always (or (and (null (slot-boundp obj1 slot-name))
+                                    (null (slot-boundp obj2 slot-name)))
+                               (eq slot-name 'id)
+                               (eq slot-name 'parenthesis-info)
+                               (eq slot-name 'diff-status)
+                               (if (deep-equal (slot-value obj1 slot-name)
+                                               (slot-value obj2 slot-name))
+                                   t
+                                   (progn ;; (log:debug "~A" obj1)
+                                          ;; (log:debug "~A" obj2)
+                                          nil)))))
+            (list  (if (= (length obj1) (length obj2))
+                       (every #'deep-equal obj1 obj2)
+                       (progn
+                         ;; (log:debug "Length not equal!~%")
+                         ;; (log:debug "Length ~A : ~A~%" (length obj1) obj1)
+                         ;; (log:debug "Length ~A : ~A~%" (length obj2) obj2)
+                         nil)))
+            (vector (if (= (length obj1) (length obj2))
+                       (every #'deep-equal obj1 obj2)
+                       (progn
+                         ;; (log:debug "Length not equal!~%")
+                         ;; (log:debug "Length ~A : ~A~%" (length obj1) obj1)
+                         ;; (log:debug "Length ~A : ~A~%" (length obj2) obj2)
+                         nil)))
+            (t (unless (equalp obj1 obj2)
+                 ;; (log:debug "~A" obj1)
+                 ;; (log:debug "~A" obj2)
+                 (return-from deep-equal nil))
+             t))
+          t
+          (progn
+            ;; (log:debug "~A" obj1)
+            ;; (log:debug "~A" obj2)
+            nil))
+      (progn ;; (log:debug "Not equal types")
+             ;; (log:debug "Type: ~A obj1: ~A ~%" (type-of obj1) obj1)
+             ;; (log:debug "Type: ~A obj2: ~A ~%" (type-of obj2) obj2)
+             nil)))
+
 (defun start-asts-comparing (ast-1 ast-2)
+  (calculate-spec-length ast-1)
+  (calculate-spec-length ast-2)
   (ecase *current-method*
     (old (start-old-version-of-asts-comparing ast-1 ast-2))
     (new (start-new-version-of-asts-comparing ast-1 ast-2))
     (competitor (start-competitor-version-of-asts-comparing ast-1 ast-2))))
 
 (defun start-old-version-of-asts-comparing (ast-1 ast-2)
-  (log:trace "Start old-version of asts comparting")
+  ;(log:trace "Start old-version of asts comparting")
   (let ((def-s-exprs-stats-1 (get-stats 1))
         (def-s-exprs-stats-2 (get-stats 2))
         (*moved-s-exprs-list*))
@@ -108,17 +164,17 @@
 (defparameter *maybe-match-list* nil)
 
 (defun add-to-maybe-match-list (obj1 obj2 nodes-prefix)
-  (log:debug t "~%Add to *maybe-match-list*~%")
-  (log:debug t "obj1 = ~S~%" obj1)
-  (log:debug t "obj2 = ~S~%" obj2)
-  (log:debug t "nodes-prefix = ~S~%" nodes-prefix)
+  ;; (log:debug t "~%Add to *maybe-match-list*~%")
+  ;; (log:debug t "obj1 = ~S~%" obj1)
+  ;; (log:debug t "obj2 = ~S~%" obj2)
+  ;; (log:debug t "nodes-prefix = ~S~%" nodes-prefix)
   (set-diff-status obj1 :maybe-match :no-push t)
   (set-diff-status obj2 :maybe-match :no-push t)
   (push (list obj1 obj2 nodes-prefix)
         *maybe-match-list*))
 
 (defun add-to-moved-s-exprs-list (node1 node2)
-  (log:debug t "~%Add to moved-s-exprs-list~%")
+  ;(log:debug t "~%Add to moved-s-exprs-list~%")
   (let ((first-and-last-coord1 (get-first-and-last-coord node1))
         (first-and-last-coord2 (get-first-and-last-coord node2)))
     (push (make-instance
@@ -133,8 +189,8 @@
 
 (defun maybe-issue-resolver ()
   (let (*maybe-match-list*)
-    (log:debug "Initially *maybe-deleted-nodes* = ~S~%" *maybe-deleted-nodes*)
-    (log:debug "Initially *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
+    ;(log:debug "Initially *maybe-deleted-nodes* = ~S~%" *maybe-deleted-nodes*)
+    ;(log:debug "Initially *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
     (loop
       :while (and *maybe-deleted-nodes*
                   *maybe-new-nodes*)
@@ -142,36 +198,38 @@
          (dolist (maybe-deleted *maybe-deleted-nodes*)
            (dolist (maybe-new *maybe-new-nodes*)
              (acond
-              ((first (gethash (cons (id maybe-deleted)
-                                     (id maybe-new))
-                               *cmp-memoization-table*))
-               (log:debug "~%memoiz-work~%")
-               (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-               (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-               (remove-from-memoiz-table :first-id (id maybe-deleted)
-                                         :second-id (id maybe-new))
-               (add-to-moved-s-exprs-list maybe-deleted maybe-new)
-               (return))
-              ((compare maybe-deleted maybe-new)
-               (log:debug "~%was successfully compare~%")
-               (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
-               (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
-               (add-to-moved-s-exprs-list maybe-deleted maybe-new)
-               (return))
-              (t
-               (log:debug "~%try traverse-and-compare~%")
-               (when (traverse-and-compare
-                      maybe-deleted
-                      maybe-new
-                      (list (id maybe-new)))
-                 (return)))))
+               ((first (gethash (cons (id maybe-deleted)
+                                      (id maybe-new))
+                                *cmp-memoization-table*))
+                ;(log:debug "~%memoiz-work~%")
+                (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
+                (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
+                (remove-from-memoiz-table :first-id (id maybe-deleted)
+                                          :second-id (id maybe-new))
+                (add-to-moved-s-exprs-list maybe-deleted maybe-new)
+                (return))
+               ((compare maybe-deleted maybe-new)
+                ;(log:debug "~%was successfully compare~%")
+                (set-diff-status maybe-deleted `(:moved ,(id maybe-new)))
+                (set-diff-status maybe-new `(:moved ,(id maybe-deleted)))
+                (add-to-moved-s-exprs-list maybe-deleted maybe-new)
+                (return))
+               (t
+                ;(log:debug "~%try traverse-and-compare~%")
+                (when (traverse-and-compare
+                       maybe-deleted
+                       maybe-new
+                       (list (id maybe-new)))
+                  (return)))))
+           
            (setf *maybe-new-nodes*
                  (remove-if
                   (lambda (el)
                     (when (listp (diff-status el))
                       (eq (first (diff-status el)) :moved)))
                   *maybe-new-nodes*))
-           (log:debug "~%New *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*))
+           ;(log:debug "~%New *maybe-new-nodes* = ~S~%~%" *maybe-new-nodes*)
+           )
          (setf *maybe-deleted-nodes*
                (remove-if
                 (lambda (el)
@@ -179,19 +237,20 @@
                       (when (listp (diff-status el))
                         (eq (first (diff-status el)) :moved))))
                 *maybe-deleted-nodes*))
-         (let ((maybe-deleted-nodes *maybe-deleted-nodes*))
-           (setf *maybe-deleted-nodes*
-                 (remove
-                  nil
-                  (mappend
-                   #'colapse-node
-                   (mapc
-                    (lambda (node)
-                      (when (eq (diff-status node) :maybe-deleted)
-                        (set-diff-status node :deleted)))
-                    maybe-deleted-nodes))))
-           (log:debug "~%New *maybe-deleted-nodes* = ~S~%~%" *maybe-deleted-nodes*)))
-    (log:debug "~%*maybe-match-list* = ~S~%~%" *maybe-match-list*)
+         (setf *maybe-deleted-nodes*
+               (apply
+                #'nconc 
+                (mapcar
+                 (lambda (node)
+                   (when (eq (diff-status node) :maybe-deleted)
+                     (set-diff-status node :deleted))
+                   (colapse-node node))
+                 *maybe-deleted-nodes*)))
+         
+         
+         ;(log:debug "~%New *maybe-deleted-nodes* = ~S~%~%" *maybe-deleted-nodes*)
+      )
+    ;(log:debug "~%*maybe-match-list* = ~S~%~%" *maybe-match-list*)
     (let ((maybe-match-list *maybe-match-list*))
       (dolist (el maybe-match-list)
         (let ((obj1 (first el))
@@ -239,12 +298,12 @@ Out4 - diff-patch for obj2"))
   (:method (obj trav-obj nodes-prefix)
     (error "Unsupported traverse-and-compare for ~S" trav-obj)))
 
-(defmethod traverse-and-compare :around (obj trav-obj nodes-prefix)
-  (log:debug "In traverse-and-compare for type ~S:~%" (type-of trav-obj))
-  (log:debug "obj = ~S~%"  obj)
-  (log:debug "trav-obj = ~S~%" trav-obj)
-  (log:debug "nodes-prefix = ~S~%~%" nodes-prefix)
-  (call-next-method)) 
+;; (defmethod traverse-and-compare :around (obj trav-obj nodes-prefix)
+;;   ;; (log:debug "In traverse-and-compare for type ~S:~%" (type-of trav-obj))
+;;   ;; (log:debug "obj = ~S~%"  obj)
+;;   ;; (log:debug "trav-obj = ~S~%" trav-obj)
+;;   ;; (log:debug "nodes-prefix = ~S~%~%" nodes-prefix)
+;;   (call-next-method)) 
 
 (defgeneric colapse-node (obj)
   (:method (obj)
@@ -662,7 +721,7 @@ Out4 - diff-patch for obj2"))
 
 (defmethod traverse-and-compare (obj (trav-obj let-node) nodes-prefix)
   (unless (eq (diff-status trav-obj) :maybe-match)
-    (or (when (compare obj (bindings trav-obj))
+    (or (when (deep-equal obj (bindings trav-obj))
           (add-to-maybe-match-list obj (bindings trav-obj) nodes-prefix)
           t)
         (traverse-and-compare obj
@@ -733,11 +792,11 @@ Out4 - diff-patch for obj2"))
 
 (defmethod traverse-and-compare (obj (trav-obj let-binding-node) nodes-prefix)
   (unless (eq (diff-status trav-obj) :maybe-match)
-    (or (when (compare obj (var-atom trav-obj))
+    (or (when (deep-equal obj (var-atom trav-obj))
           (add-to-maybe-match-list obj (var-atom trav-obj) nodes-prefix)
           t)
         (when (value-s-expr trav-obj)
-          (when (compare obj (value-s-expr trav-obj))
+          (when (deep-equal obj (value-s-expr trav-obj))
             (add-to-maybe-match-list obj (value-s-expr trav-obj) nodes-prefix)
             t)
           (traverse-and-compare obj
@@ -858,20 +917,20 @@ Out4 - diff-patch for obj2"))
 
 (defmethod traverse-and-compare (obj (trav-obj if-node) nodes-prefix)
   (unless (eq (diff-status trav-obj) :maybe-match)
-    (or (when (compare obj (test-s-expr trav-obj))
+    (or (when (deep-equal obj (test-s-expr trav-obj))
           (add-to-maybe-match-list obj (test-s-expr trav-obj) nodes-prefix)
           t)
         (traverse-and-compare obj
                               (test-s-expr trav-obj)
                               nodes-prefix)
-        (when (compare obj (then-s-expr trav-obj))
+        (when (deep-equal obj (then-s-expr trav-obj))
           (add-to-maybe-match-list obj (then-s-expr trav-obj) nodes-prefix)
           t)
         (traverse-and-compare obj
                               (then-s-expr trav-obj)
                               nodes-prefix)
         (when (else-s-expr trav-obj)
-          (when (compare obj (else-s-expr trav-obj))
+          (when (deep-equal obj (else-s-expr trav-obj))
             (add-to-maybe-match-list obj (else-s-expr trav-obj) nodes-prefix)
             t)
           (traverse-and-compare obj

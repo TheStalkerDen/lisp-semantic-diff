@@ -13,10 +13,30 @@
                 :init-stats))
 (in-package :diff-backend/experiments)
 
+(defparameter *dotimes* 2)
+
 (defun expers-with-equal-files ()
-  (dotimes (i 17)
-    (compare-two-files (format nil "../../out/f~Sv1.lisp" (+ i 1))
-                       (format nil "../../out/f~Sv2.lisp" (+ i 1)))))
+  (compare-two-files-in "equal"))
+
+(defun expers-with-full-not-equal-files ()
+  (compare-two-files-in "not-equal"))
+
+(defun expers-with-modified-at-start-files ()
+  (compare-two-files-in "st-mod"))
+    
+
+(defun compare-two-files-in (folder)
+  (format t "Current method is ~S ~%" *current-method*)
+  (loop
+    :for i :from 1 :to 9
+    :do
+       (progn
+         (format t "-------------------------------------------~%")
+         (format t "i = ~d ~%" i)
+         (let ((pattern "../../lisp-files/~A/f~Av~A.lisp"))
+           (compare-two-files (format nil pattern folder i 1) 
+                              (format nil pattern folder i 2))))))
+
 
 (defun compare-two-files (filepath1 filepath2)
   (let ((str1 (read-file-into-string filepath1))
@@ -28,16 +48,9 @@
   (let ((ast-1 (get-abstract-sem-tree-from-string str1 1))
         (ast-2 (get-abstract-sem-tree-from-string str2 2))
         (start-time (get-internal-run-time)))
-    (multiple-value-bind (m-ast-1 m-ast-2 moved-s-exprs-list)
-        (start-asts-comparing ast-1 ast-2)
-      (log:info "Exec time: ~S" (- (get-internal-run-time) start-time))
-      (return-from compare-two-str (values m-ast-1 m-ast-2)))))
+    (dotimes (i *dotimes*)
+      (start-asts-comparing ast-1 ast-2))
+    (log:info "Exec time: ~f sec" (/ (- (get-internal-run-time) start-time) (* *dotimes* internal-time-units-per-second)))))
 
 (defun get-abstract-sem-tree-from-string (str cur-file)
-  (multiple-value-bind (res-lexems comments lex-errors)
-      (lexer str)
-    (multiple-value-bind (res-syn-tree parser-error)
-        (parser res-lexems)
-      (multiple-value-bind (res-ast semantic-errors)
-          (abstract-sem-tree-gen res-syn-tree :curr-file cur-file)
-        res-ast))))
+  (abstract-sem-tree-gen (parser (lexer str)) :curr-file cur-file))
